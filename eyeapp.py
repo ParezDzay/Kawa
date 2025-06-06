@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+from io import BytesIO
 
 # Set page config
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
@@ -25,7 +26,7 @@ df.columns = df.columns.str.strip().str.replace('\n', ' ').str.replace('"', '')
 # Language dictionary
 texts = {
     "English": {
-        "fill_data": "📝 Fill Data",
+        "new_patient": "🆕 New Patient",
         "view_data": "📊 View Data",
         "patient_data_title": "👁️ Dr. Kawa Khoshnaw Clinic Patient Data",
         "add_patient_title": "➕ Add New Patient Record",
@@ -53,17 +54,18 @@ texts = {
         "doctor_name": "Doctor Name",
         "next_visit": "Next Visit Date",
         "remarks": "Remarks",
-        "download": "⬇️ Download filtered data as CSV"
+        "download_filtered": "⬇️ Download Filtered Data (Excel)",
+        "download_full": "⬇️ Download Full Data (Excel)"
     }
 }
 
 # Language
 language = "English"
 
-# Sidebar menu
+# Sidebar menu — default to New Patient
 menu = st.sidebar.radio(
     "📁 Menu",
-    [texts[language]["view_data"], texts[language]["fill_data"]],
+    [texts[language]["new_patient"], texts[language]["view_data"]],
     index=0
 )
 
@@ -71,7 +73,7 @@ if menu == texts[language]["view_data"]:
     st.title(texts[language]["patient_data_title"])
     st.markdown("---")
 
-    tab1, tab2 = st.tabs(["📋 All Data", "🔍 Filtered View"])
+    tab1, tab2, tab3 = st.tabs(["📋 All Data", "🔍 Filtered View", "📥 Download Data"])
 
     with tab1:
         st.subheader("📋 Complete Patient Records")
@@ -94,12 +96,32 @@ if menu == texts[language]["view_data"]:
 
         st.dataframe(filtered_df, use_container_width=True)
 
+    with tab3:
+        st.subheader("📥 Download Patient Data")
+
+        def to_excel(dataframe):
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                dataframe.to_excel(writer, index=False, sheet_name='Patients')
+            output.seek(0)
+            return output
+
+        excel_full = to_excel(df)
         st.download_button(
-            label=texts[language]["download"],
-            data=filtered_df.to_csv(index=False),
-            file_name="filtered_eye_patients.csv",
-            mime="text/csv"
+            label=texts[language]["download_full"],
+            data=excel_full,
+            file_name="all_patient_data.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+        if 'filtered_df' in locals():
+            excel_filtered = to_excel(filtered_df)
+            st.download_button(
+                label=texts[language]["download_filtered"],
+                data=excel_filtered,
+                file_name="filtered_patient_data.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -119,7 +141,7 @@ if menu == texts[language]["view_data"]:
             ax.axis('equal')
             st.pyplot(fig)
 
-elif menu == texts[language]["fill_data"]:
+elif menu == texts[language]["new_patient"]:
     st.title(texts[language]["add_patient_title"])
     st.markdown("Please fill out the following patient details:")
     st.markdown("---")
