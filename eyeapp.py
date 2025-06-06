@@ -1,11 +1,15 @@
 import streamlit as st
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
+
+# Set page config
+st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 
 # File path
-file_path = r"eye_data.csv"
+file_path = "eye_data.csv"
 
-# Ensure file exists with correct columns
+# Ensure file exists
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number", "Address",
@@ -14,21 +18,21 @@ if not os.path.exists(file_path):
         "Medication_Prescribed", "Surgery_Scheduled", "Doctor_Name", "Next_Visit_Date", "Remarks"
     ]).to_csv(file_path, index=False)
 
-# Load data
+# Load data (refreshed on every rerun)
 df = pd.read_csv(file_path)
 df.columns = df.columns.str.strip().str.replace('\n', ' ').str.replace('"', '')
 
-# Language dictionary for English and Arabic
+# Language dictionary
 texts = {
     "English": {
-        "fill_data": "Fill Data",
-        "view_data": "View Data",
-        "patient_data_title": "Dr Kawa Khoshnaw Clinic Patient Data",
-        "add_patient_title": "Add New Patient Record",
+        "fill_data": "📝 Fill Data",
+        "view_data": "📊 View Data",
+        "patient_data_title": "👁️ Dr. Kawa Khoshnaw Clinic Patient Data",
+        "add_patient_title": "➕ Add New Patient Record",
         "select_patient": "Select Patient",
         "select_diagnosis": "Select Diagnosis",
         "add_patient_button": "Add Patient",
-        "success_msg": "New patient record added and saved!",
+        "success_msg": "✅ New patient record added and saved!",
         "date": "Date",
         "patient_id": "Patient ID",
         "full_name": "Full Name",
@@ -49,69 +53,40 @@ texts = {
         "doctor_name": "Doctor Name",
         "next_visit": "Next Visit Date",
         "remarks": "Remarks",
-        "download": "Download filtered data as CSV"
-    },
-    "Arabic": {
-        "fill_data": "ملء البيانات",
-        "view_data": "عرض البيانات",
-        "patient_data_title": "بيانات مرضى عيادة د. كاوا خوشناو",
-        "add_patient_title": "إضافة سجل مريض جديد",
-        "select_patient": "اختر المريض",
-        "select_diagnosis": "اختر التشخيص",
-        "add_patient_button": "إضافة المريض",
-        "success_msg": "تمت إضافة سجل المريض الجديد وحفظه!",
-        "date": "التاريخ",
-        "patient_id": "معرّف المريض",
-        "full_name": "الاسم الكامل",
-        "age": "العمر",
-        "gender": "الجنس",
-        "phone": "رقم الهاتف",
-        "address": "العنوان",
-        "mrn": "رقم السجل الطبي",
-        "diagnosis": "التشخيص",
-        "eye_affected": "العين المتأثرة",
-        "visual_right": "حدة البصر اليمنى",
-        "visual_left": "حدة البصر اليسرى",
-        "pressure_right": "ضغط العين اليمنى",
-        "pressure_left": "ضغط العين اليسرى",
-        "treatment": "العلاج المقدم",
-        "medication": "الأدوية الموصوفة",
-        "surgery": "العملية المجدولة",
-        "doctor_name": "اسم الطبيب",
-        "next_visit": "تاريخ الزيارة القادمة",
-        "remarks": "ملاحظات",
-        "download": "تحميل البيانات المصفاة بصيغة CSV"
+        "download": "⬇️ Download filtered data as CSV"
     }
 }
 
-# Language selection (no "Navigation" word)
-language = st.sidebar.selectbox("Select Language / اختر اللغة", ["English", "Arabic"])
+# Language
+language = "English"
 
-# Sidebar menu, default to "Fill Data"
+# Sidebar menu
 menu = st.sidebar.radio(
-    "",
+    "📁 Menu",
     [texts[language]["view_data"], texts[language]["fill_data"]],
-    index=1
+    index=0
 )
 
 if menu == texts[language]["view_data"]:
     st.title(texts[language]["patient_data_title"])
+    st.markdown("---")
 
     # Filters
     patient_options = df['Full_Name'].dropna().unique()
     diagnosis_options = df['Diagnosis'].dropna().unique()
 
-    selected_patient = st.sidebar.multiselect(texts[language]["select_patient"], patient_options, default=patient_options)
-    selected_diagnosis = st.sidebar.multiselect(texts[language]["select_diagnosis"], diagnosis_options, default=diagnosis_options)
+    col1, col2 = st.sidebar.columns(2)
+    selected_patient = col1.multiselect(texts[language]["select_patient"], patient_options, default=patient_options)
+    selected_diagnosis = col2.multiselect(texts[language]["select_diagnosis"], diagnosis_options, default=diagnosis_options)
 
-    # Filter data
+    # Filtered data
     filtered_df = df[
         df['Full_Name'].isin(selected_patient) &
         df['Diagnosis'].isin(selected_diagnosis)
     ]
 
-    st.subheader(texts[language]["patient_data_title"])
-    st.dataframe(filtered_df)
+    st.subheader("📋 Filtered Patient Records")
+    st.dataframe(filtered_df, use_container_width=True)
 
     st.download_button(
         label=texts[language]["download"],
@@ -120,8 +95,28 @@ if menu == texts[language]["view_data"]:
         mime="text/csv"
     )
 
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("📈 Diagnosis Distribution")
+        if not df.empty and "Diagnosis" in df:
+            diag_counts = df['Diagnosis'].value_counts()
+            st.bar_chart(diag_counts)
+
+    with col2:
+        st.subheader("🧑‍🤝‍🧑 Gender Distribution")
+        if not df.empty and "Gender" in df:
+            gender_counts = df['Gender'].value_counts()
+            fig, ax = plt.subplots()
+            ax.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle=90)
+            ax.axis('equal')
+            st.pyplot(fig)
+
 elif menu == texts[language]["fill_data"]:
     st.title(texts[language]["add_patient_title"])
+    st.markdown("Please fill out the following patient details:")
+    st.markdown("---")
 
     with st.form("patient_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -177,3 +172,4 @@ elif menu == texts[language]["fill_data"]:
             df = pd.concat([df, new_entry], ignore_index=True)
             df.to_csv(file_path, index=False)
             st.success(texts[language]["success_msg"])
+            st.experimental_rerun()  # <- forces app to refresh and show updated view
