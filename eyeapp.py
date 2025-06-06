@@ -71,29 +71,35 @@ if menu == texts[language]["view_data"]:
     st.title(texts[language]["patient_data_title"])
     st.markdown("---")
 
-    # Filters
-    patient_options = df['Full_Name'].dropna().unique()
-    diagnosis_options = df['Diagnosis'].dropna().unique()
+    tab1, tab2 = st.tabs(["📋 All Data", "🔍 Filtered View"])
 
-    col1, col2 = st.sidebar.columns(2)
-    selected_patient = col1.multiselect(texts[language]["select_patient"], patient_options, default=patient_options)
-    selected_diagnosis = col2.multiselect(texts[language]["select_diagnosis"], diagnosis_options, default=diagnosis_options)
+    with tab1:
+        st.subheader("📋 Complete Patient Records")
+        st.dataframe(df, use_container_width=True)
 
-    # Filtered data
-    filtered_df = df[
-        df['Full_Name'].isin(selected_patient) &
-        df['Diagnosis'].isin(selected_diagnosis)
-    ]
+    with tab2:
+        st.subheader("🔍 Filter and Explore Records")
 
-    st.subheader("📋 Filtered Patient Records")
-    st.dataframe(filtered_df, use_container_width=True)
+        patient_options = df['Full_Name'].dropna().unique()
+        diagnosis_options = df['Diagnosis'].dropna().unique()
 
-    st.download_button(
-        label=texts[language]["download"],
-        data=filtered_df.to_csv(index=False),
-        file_name="filtered_eye_patients.csv",
-        mime="text/csv"
-    )
+        col1, col2 = st.columns(2)
+        selected_patient = col1.multiselect(texts[language]["select_patient"], patient_options, default=patient_options)
+        selected_diagnosis = col2.multiselect(texts[language]["select_diagnosis"], diagnosis_options, default=diagnosis_options)
+
+        filtered_df = df[
+            df['Full_Name'].isin(selected_patient) &
+            df['Diagnosis'].isin(selected_diagnosis)
+        ]
+
+        st.dataframe(filtered_df, use_container_width=True)
+
+        st.download_button(
+            label=texts[language]["download"],
+            data=filtered_df.to_csv(index=False),
+            file_name="filtered_eye_patients.csv",
+            mime="text/csv"
+        )
 
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -172,4 +178,4 @@ elif menu == texts[language]["fill_data"]:
             df = pd.concat([df, new_entry], ignore_index=True)
             df.to_csv(file_path, index=False)
             st.success(texts[language]["success_msg"])
-            st.rerun()  # updated here
+            st.rerun()
