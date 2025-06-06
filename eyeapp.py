@@ -18,7 +18,7 @@ if not os.path.exists(file_path):
         "Medication_Prescribed", "Surgery_Scheduled", "Doctor_Name", "Next_Visit_Date", "Remarks"
     ]).to_csv(file_path, index=False)
 
-# Load data (refreshed on every rerun)
+# Load data
 df = pd.read_csv(file_path)
 df.columns = df.columns.str.strip().str.replace('\n', ' ').str.replace('"', '')
 
@@ -172,4 +172,4 @@ elif menu == texts[language]["fill_data"]:
             df = pd.concat([df, new_entry], ignore_index=True)
             df.to_csv(file_path, index=False)
             st.success(texts[language]["success_msg"])
-            st.experimental_rerun()  # <- forces app to refresh and show updated view
+            st.rerun()  # updated here
