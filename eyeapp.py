@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-from io import BytesIO
 
 # Set page config
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
@@ -54,19 +53,18 @@ texts = {
         "doctor_name": "Doctor Name",
         "next_visit": "Next Visit Date",
         "remarks": "Remarks",
-        "download_filtered": "⬇️ Download Filtered Data (Excel)",
-        "download_full": "⬇️ Download Full Data (Excel)"
+        "download": "⬇️ Download filtered data as CSV",
+        "download_all": "⬇️ Download full dataset as CSV"
     }
 }
 
-# Language
 language = "English"
 
-# Sidebar menu — default to New Patient
+# Sidebar
 menu = st.sidebar.radio(
     "📁 Menu",
     [texts[language]["new_patient"], texts[language]["view_data"]],
-    index=0
+    index=0  # Default page is New Patient
 )
 
 if menu == texts[language]["view_data"]:
@@ -96,32 +94,21 @@ if menu == texts[language]["view_data"]:
 
         st.dataframe(filtered_df, use_container_width=True)
 
-    with tab3:
-        st.subheader("📥 Download Patient Data")
-
-        def to_excel(dataframe):
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                dataframe.to_excel(writer, index=False, sheet_name='Patients')
-            output.seek(0)
-            return output
-
-        excel_full = to_excel(df)
         st.download_button(
-            label=texts[language]["download_full"],
-            data=excel_full,
-            file_name="all_patient_data.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            label=texts[language]["download"],
+            data=filtered_df.to_csv(index=False),
+            file_name="filtered_eye_patients.csv",
+            mime="text/csv"
         )
 
-        if 'filtered_df' in locals():
-            excel_filtered = to_excel(filtered_df)
-            st.download_button(
-                label=texts[language]["download_filtered"],
-                data=excel_filtered,
-                file_name="filtered_patient_data.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+    with tab3:
+        st.subheader("📥 Download All Data")
+        st.download_button(
+            label=texts[language]["download_all"],
+            data=df.to_csv(index=False),
+            file_name="all_eye_patients.csv",
+            mime="text/csv"
+        )
 
     st.markdown("---")
     col1, col2 = st.columns(2)
