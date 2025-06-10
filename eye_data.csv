@@ -1,17 +1,1 @@
-Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Address,Medical_Record_Number,Diagnosis,Eye_Affected,Visual_Acuity_Right,Visual_Acuity_Left,Intraocular_Pressure_Right,Intraocular_Pressure_Left,Treatment_Provided,Medication_Prescribed,Surgery_Scheduled,Doctor_Name,Next_Visit_Date,Remarks,Visual_Acuity_RA,Visual_Acuity_LA,IOP_RA,IOP_LA,Medication,Visual_Acuity,IOP,AC,Fundus,U/S,OCT/FFA,Treatment,Plan
-2025-06-10,1,Naria,0,Male,,,,oke naria,,,,,,,,,,,,,,,,,,,,,,,,
-2025-06-10,2,hjk,0,Male,,,,hichi nia,,,,,,,,,,,,,,,,,,,,,,,,
-2025-06-10,3,katia,0,Male,,,,nann,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),jk,m,"nm,","m,",jk,nm
-2025-06-10,4,kawa,0,Male,,,,nanbn,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),hjk,nm,hjk,jhk,hnj,hjk
-2025-06-10,5,PAr,0,Male,,,,j,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),q,t,j,lo,j,j
-2025-06-10,6,f,0,Male,,,,nanj,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),a,a,a,aa,k,j
-2025-06-10,7,jk,0,Male,,,,,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),a,a,a,aa,a,a
-2025-06-10,8,dd,0,Male,,,,nanF,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),W,sda,F,F,SADDF,FF
-2025-06-10,9,jkd,0,Male,,,,DDD,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),sJD,DDD,DDD,DDD,DDD,DDD
-2025-06-10,10,hj,0,Male,,,,nannkm,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),kj.l/hjk.l,"hklm';,",hjk;l,hjlk;o,ljk;l,jkl
-2025-06-10,11,h,0,Male,,,,nanjj,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),hjkhj,hjlk,hhkk,ooo,hkk,oop
-2025-06-10,12,j,0,Male,,,,j,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),hsd,j,j,j,j,jj
-2025-06-10,13,h,0,Male,,,,h,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),Hh,h,h,h,h,h
-2025-06-10,14,pppppp,0,Male,,,,h,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),h,hh,h,h,hh,h
-2025-06-10,15,lklk,0,Male,,,,HB,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),G,HHBH,HGJB,NHJKN,JUJHB,"GHJB,"
-2025-06-10,16,"ghj,",0,Male,,,,nanm,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),hj,hj,n,l,m,n
+Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Diagnosis,Visual_Acuity_RA,Visual_Acuity_LA,IOP_RA,IOP_LA,Medication,Fundus,U/S,OCT/FFA,Treatment,Plan
