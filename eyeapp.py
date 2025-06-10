@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import base64
 import requests
 from datetime import datetime
+import time
 
 # GitHub push function
 def push_to_github(file_path, commit_message):
@@ -51,8 +52,9 @@ def push_to_github(file_path, commit_message):
 # Set page config
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 
-# File path
-file_path = "eye_data.csv"
+# Ensure consistent base directory
+BASE_DIR = os.path.dirname(__file__)
+file_path = os.path.join(BASE_DIR, "eye_data.csv")
 
 # Ensure file exists
 if not os.path.exists(file_path):
@@ -124,7 +126,6 @@ if menu == texts[language]["view_data"]:
 
     with tab2:
         st.subheader("🔍 Filter and Explore Records")
-
         patient_options = df['Full_Name'].dropna().unique()
         diagnosis_options = df['Diagnosis'].dropna().unique()
 
@@ -165,7 +166,7 @@ if menu == texts[language]["view_data"]:
             st.bar_chart(diag_counts)
 
     with col2:
-        st.subheader("🧑‍🧛 Gender Distribution")
+        st.subheader("🧑‍🤝‍🧑 Gender Distribution")
         if not df.empty and "Gender" in df:
             gender_counts = df['Gender'].value_counts()
             fig, ax = plt.subplots()
@@ -230,10 +231,17 @@ elif menu == texts[language]["new_patient"]:
             }])
 
             df = pd.concat([df, new_entry], ignore_index=True)
-            df.to_csv(file_path, index=False)
+            try:
+                df.to_csv(file_path, index=False)
+                st.info(f"✅ Data saved locally to: {file_path}")
+            except Exception as e:
+                st.error(f"❌ Failed to save locally: {e}")
+
             success = push_to_github(file_path, f"Patient data updated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             if success:
                 st.success("✅ New patient record added and saved to GitHub!")
             else:
                 st.warning("⚠️ Data saved locally, but failed to push to GitHub.")
+
+            time.sleep(2)
             st.rerun()
