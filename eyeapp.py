@@ -72,7 +72,7 @@ if menu == "🌟 New Patient":
         st.title("📋 Pre-Visit Entry")
 
         try:
-            last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\\d+)')[0].astype(int).max()
+            last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\d+)')[0].astype(int).max()
             next_id = f"{last_id + 1:04d}"
         except:
             next_id = "0001"
@@ -138,6 +138,7 @@ if menu == "🌟 New Patient":
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
         else:
+            updated_ids = []
             for _, row in waiting_df.iterrows():
                 with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
                     selected = df[df["Patient_ID"] == row["Patient_ID"]]
@@ -204,8 +205,14 @@ if menu == "🌟 New Patient":
                             """
                             st.components.v1.html(html, height=900)
 
+                            updated_ids.append(row['Patient_ID'])
+
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
+
+            if updated_ids:
+                df = df[~df['Patient_ID'].isin(updated_ids)]
+                df.to_csv(file_path, index=False)
 
 # --- View Data ---
 elif menu == "📊 View Data":
