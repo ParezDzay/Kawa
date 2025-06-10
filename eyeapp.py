@@ -170,19 +170,19 @@ if menu == "🆕 New Patient":
                             <html>
                             <head>
                             <style>
-                                table {{
+                                table {
                                     width: 100%;
                                     border-collapse: collapse;
                                     font-family: Arial, sans-serif;
-                                }}
-                                th, td {{
+                                }
+                                th, td {
                                     border: 1px solid #999;
                                     padding: 8px;
                                     text-align: left;
-                                }}
-                                th {{
+                                }
+                                th {
                                     background-color: #f2f2f2;
-                                }}
+                                }
                             </style>
                             </head>
                             <body>
@@ -194,7 +194,12 @@ if menu == "🆕 New Patient":
                             </body>
                             </html>
                             """, height=600, scrolling=True)
+                            st.download_button(
                                 label="🖨️ Download Printable Record",
+                                data=df.loc[[idx]].to_csv(index=False),
+                                file_name=f"patient_{row['Patient_ID']}_record.csv",
+                                mime="text/csv"
+                            )"🖨️ Download Printable Record",
                                 data=df.loc[[idx]].to_csv(index=False),
                                 file_name=f"patient_{row['Patient_ID']}_record.csv",
                                 mime="text/csv"
