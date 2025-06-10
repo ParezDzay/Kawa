@@ -150,8 +150,7 @@ if menu == "🆕 New Patient":
 
                         if st.form_submit_button("Update Record"):
                             idx = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
-                            df.loc[idx, ["Diagnosis", "Visual_Acuity", "IOP", "Medication"]] = [
-                                diagnosis.strip(), visual_acuity, iop, medication
+                            df.loc[idx, ["Diagnosis"
                             ]
                             try:
                                 df.to_csv(file_path, index=False)
