@@ -1,2 +1,2 @@
 Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Address,Medical_Record_Number,Diagnosis,Eye_Affected,Visual_Acuity_Right,Visual_Acuity_Left,Intraocular_Pressure_Right,Intraocular_Pressure_Left,Treatment_Provided,Medication_Prescribed,Surgery_Scheduled,Doctor_Name,Next_Visit_Date,Remarks
-2025-06-10,P0001,,0,Male,,,,,,,,,,,,,,2025-06-10,
+2025-06-10,P0001,,0,Male,,,,okk,Right,nan,nan,,,nan,nan,nan,,2025-06-10,okk
