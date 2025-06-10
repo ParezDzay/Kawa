@@ -131,7 +131,9 @@ if menu == "🆕 New Patient":
         st.title("⏳ Patients Waiting for Doctor Update")
         filtered_df = df.copy()
         filtered_df["Diagnosis"] = filtered_df["Diagnosis"].fillna("").astype(str).str.strip()
-        waiting_df = filtered_df[filtered_df["Diagnosis"] == ""]
+        filtered_df["Treatment"] = filtered_df.get("Treatment", "").fillna("").astype(str).str.strip()
+        filtered_df["Plan"] = filtered_df.get("Plan", "").fillna("").astype(str).str.strip()
+        waiting_df = filtered_df[(filtered_df["Diagnosis"] == "") & (filtered_df["Treatment"] == "") & (filtered_df["Plan"] == "")]
 
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
