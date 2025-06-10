@@ -51,13 +51,28 @@ file_path = "eye_data.csv"
 # Initialize CSV if not exists
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
-        "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Diagnosis", "Visual_Acuity", "IOP", "Medication"
+        "Date",
+        "Patient_ID",
+        "Full_Name",
+        "Age",
+        "Gender",
+        "Phone_Number",
+        "Diagnosis",
+        "Visual_Acuity_RA",
+        "Visual_Acuity_LA",
+        "IOP_RA",
+        "IOP_LA",
+        "Medication",
     ]).to_csv(file_path, index=False)
 
 # Load CSV
 df = pd.read_csv(file_path)
 df.columns = df.columns.str.strip().str.replace('\n', ' ').str.replace('"', '')
+
+# Ensure new columns exist
+for col in ["Visual_Acuity_RA", "Visual_Acuity_LA", "IOP_RA", "IOP_LA"]:
+    if col not in df.columns:
+        df[col] = ""
 
 # Sidebar menu
 menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
@@ -86,24 +101,39 @@ if menu == "🆕 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                visual_acuity = st.text_input("VA: RA ( ) and LA ( )", placeholder="e.g., RA (6/6) and LA (6/9)")
-                iop = st.text_input("IOP: RA ( ) and LA ( )", placeholder="e.g., RA (15) and LA (14)")
+                va_ra_col, va_la_col = st.columns(2)
+                va_ra = va_ra_col.text_input("VA RA", placeholder="6/6")
+                va_la = va_la_col.text_input("VA LA", placeholder="6/9")
+
+                iop_ra_col, iop_la_col = st.columns(2)
+                iop_ra = iop_ra_col.text_input("IOP RA", placeholder="15")
+                iop_la = iop_la_col.text_input("IOP LA", placeholder="14")
+
                 medication = st.text_input("Medication")
 
             submitted = st.form_submit_button("Submit Pre-Visit Entry")
             if submitted:
-                new_entry = pd.DataFrame([{
-                    "Date": date,
-                    "Patient_ID": next_id,
-                    "Full_Name": full_name,
-                    "Age": age,
-                    "Gender": gender,
-                    "Phone_Number": phone,
-                    "Diagnosis": "",
-                    "Visual_Acuity": visual_acuity,
-                    "IOP": iop,
-                    "Medication": medication
-                }])
+                visual_acuity = f"RA ({va_ra}) LA ({va_la})"
+                iop = f"RA ({iop_ra}) LA ({iop_la})"
+
+                new_entry = pd.DataFrame([
+                    {
+                        "Date": date,
+                        "Patient_ID": next_id,
+                        "Full_Name": full_name,
+                        "Age": age,
+                        "Gender": gender,
+                        "Phone_Number": phone,
+                        "Diagnosis": "",
+                        "Visual_Acuity_RA": va_ra,
+                        "Visual_Acuity_LA": va_la,
+                        "IOP_RA": iop_ra,
+                        "IOP_LA": iop_la,
+                        "Visual_Acuity": visual_acuity,
+                        "IOP": iop,
+                        "Medication": medication,
+                    }
+                ])
                 df = pd.concat([df, new_entry], ignore_index=True)
                 try:
                     df.to_csv(file_path, index=False)
@@ -140,18 +170,47 @@ if menu == "🆕 New Patient":
                     col1, col2 = st.columns(2)
                     with col1:
                         diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0])
-                        visual_acuity = st.text_input("VA: RA ( ) and LA ( )", value=record["Visual_Acuity"].values[0])
+                        va_ra_col, va_la_col = st.columns(2)
+                        va_ra = va_ra_col.text_input(
+                            "VA RA", value=record.get("Visual_Acuity_RA", [""])[0]
+                        )
+                        va_la = va_la_col.text_input(
+                            "VA LA", value=record.get("Visual_Acuity_LA", [""])[0]
+                        )
                     with col2:
-                        iop = st.text_input("IOP: RA ( ) and LA ( )", value=record["IOP"].values[0])
+                        iop_ra_col, iop_la_col = st.columns(2)
+                        iop_ra = iop_ra_col.text_input(
+                            "IOP RA", value=record.get("IOP_RA", [""])[0]
+                        )
+                        iop_la = iop_la_col.text_input(
+                            "IOP LA", value=record.get("IOP_LA", [""])[0]
+                        )
                         medication = st.text_input("Medication", value=record["Medication"].values[0])
 
                     submitted = st.form_submit_button("Update Patient Record")
                     if submitted:
+                        visual_acuity = f"RA ({va_ra}) LA ({va_la})"
+                        iop = f"RA ({iop_ra}) LA ({iop_la})"
+
                         idx = df[df["Patient_ID"] == selected_id].index[0]
                         df.loc[idx, [
-                            "Diagnosis", "Visual_Acuity", "IOP", "Medication"
+                            "Diagnosis",
+                            "Visual_Acuity_RA",
+                            "Visual_Acuity_LA",
+                            "IOP_RA",
+                            "IOP_LA",
+                            "Visual_Acuity",
+                            "IOP",
+                            "Medication",
                         ]] = [
-                            diagnosis, visual_acuity, iop, medication
+                            diagnosis,
+                            va_ra,
+                            va_la,
+                            iop_ra,
+                            iop_la,
+                            visual_acuity,
+                            iop,
+                            medication,
                         ]
 
                         try:
