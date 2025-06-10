@@ -1,1 +1,2 @@
-Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Diagnosis,Visual_Acuity_RA,Visual_Acuity_LA,IOP_RA,IOP_LA,Medication,Fundus,U/S,OCT/FFA,Treatment,Plan
+Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Diagnosis,Visual_Acuity_RA,Visual_Acuity_LA,IOP_RA,IOP_LA,Medication,Fundus,U/S,OCT/FFA,Treatment,Plan,Visual_Acuity,IOP
+2025-06-10,0001,Parez,32,Male,,,,,,,,,,,,,RA () ; LA (),RA () ; LA ()
