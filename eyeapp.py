@@ -163,42 +163,38 @@ if menu == "🆕 New Patient":
                                 ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                             ]
 
-                            st.markdown("---")
-                            st.subheader("🖨️ Would you like to print this record?")
-                            html_content = df.loc[[idx]].to_html(index=False)
-                            html_content = df.loc[[idx]].to_html(index=False)
                             html = f"""
                             <html>
                             <head>
                             <style>
-                                body {
+                                body {{
                                     font-family: Arial, sans-serif;
                                     padding: 30px;
                                     line-height: 1.6;
-                                }
-                                h2 {
+                                }}
+                                h2 {{
                                     color: #2c3e50;
-                                }
-                                .section-title {
+                                }}
+                                .section-title {{
                                     margin-top: 20px;
                                     font-size: 18px;
                                     font-weight: bold;
                                     border-bottom: 1px solid #ccc;
                                     padding-bottom: 4px;
-                                }
-                                table {
+                                }}
+                                table {{
                                     width: 100%;
                                     border-collapse: collapse;
                                     margin-top: 10px;
-                                }
-                                th, td {
+                                }}
+                                th, td {{
                                     border: 1px solid #999;
                                     padding: 8px;
                                     text-align: left;
-                                }
-                                th {
+                                }}
+                                th {{
                                     background-color: #f2f2f2;
-                                }
+                                }}
                             </style>
                             </head>
                             <body>
