@@ -62,14 +62,17 @@ df.columns = df.columns.str.strip().str.replace('\n', ' ').str.replace('"', '')
 # Sidebar menu
 menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
 
+# Session state for cross-tab interaction
+if "selected_id_from_waiting" not in st.session_state:
+    st.session_state.selected_id_from_waiting = None
+
 if menu == "🆕 New Patient":
-    tab1, tab2, tab3 = st.tabs(["📋 Pre-Visit Entry (Secretary)", "🩺 Post-Visit Update (Doctor)", "⏳ Waiting List"])
+    tab1, tab2, tab3 = st.tabs(["📋 Pre-Visit Entry (Secretary)", "⏳ Waiting List", "🩺 Post-Visit Update (Doctor)"])
 
     # --- Tab 1: Pre-Visit Entry ---
     with tab1:
         st.title("📋 Pre-Visit Entry (Secretary)")
 
-        # Generate Patient ID
         try:
             last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\d+)')[0].astype(int).max()
             next_id = f"{last_id + 1:04d}"
@@ -118,19 +121,33 @@ if menu == "🆕 New Patient":
                 time.sleep(2)
                 st.rerun()
 
-    # --- Tab 2: Post-Visit Update ---
+    # --- Tab 2: Waiting List ---
     with tab2:
+        st.title("⏳ Patients Waiting for Doctor Update")
+        waiting_df = df[df["Diagnosis"].isna() | (df["Diagnosis"].astype(str).str.strip() == "")]
+        if waiting_df.empty:
+            st.success("🎉 No patients are currently waiting.")
+        else:
+            for idx, row in waiting_df.iterrows():
+                btn_label = f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"
+                if st.button(btn_label, key=f"waiting_{row['Patient_ID']}"):
+                    st.session_state.selected_id_from_waiting = row["Patient_ID"]
+                    st.experimental_rerun()
+
+    # --- Tab 3: Post-Visit Update ---
+    with tab3:
         st.title("🩺 Post-Visit Update (Doctor)")
+
         if df.empty or df["Patient_ID"].isna().all():
             st.warning("No patient records available.")
         else:
             existing_ids = df["Patient_ID"].dropna().unique().tolist()
-            latest_id = df["Patient_ID"].dropna().iloc[-1]
-            selected_id = st.selectbox(
-                "Select Patient ID",
-                existing_ids,
-                index=existing_ids.index(latest_id) if latest_id in existing_ids else 0
-            )
+            default_index = 0
+            if st.session_state.selected_id_from_waiting in existing_ids:
+                default_index = existing_ids.index(st.session_state.selected_id_from_waiting)
+
+            selected_id = st.selectbox("Select Patient ID", existing_ids, index=default_index)
+            st.session_state.selected_id_from_waiting = None  # Clear after use
 
             record = df[df["Patient_ID"] == selected_id]
             if record.empty:
@@ -153,7 +170,6 @@ if menu == "🆕 New Patient":
                         ]] = [
                             diagnosis, visual_acuity, iop, medication
                         ]
-
                         try:
                             df.to_csv(file_path, index=False)
                             st.success("✅ Post-visit data saved locally.")
@@ -166,15 +182,6 @@ if menu == "🆕 New Patient":
                             st.warning("⚠️ GitHub push failed.")
                         time.sleep(2)
                         st.rerun()
-
-    # --- Tab 3: Waiting List ---
-    with tab3:
-        st.title("⏳ Patients Waiting for Doctor Update")
-        waiting_df = df[df["Diagnosis"].isna() | (df["Diagnosis"].astype(str).str.strip() == "")]
-        if waiting_df.empty:
-            st.success("🎉 No patients are currently waiting for post-visit updates.")
-        else:
-            st.dataframe(waiting_df, use_container_width=True)
 
 # --- View Data ---
 elif menu == "📊 View Data":
