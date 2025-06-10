@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st  
 import pandas as pd
 import os
 import base64
@@ -85,12 +85,23 @@ if menu == "🆕 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                VA = st.text_input("VA: LA"); VA = st.text_input("VA: RA")
-                iop = st.text_input("IOP: LA"); iop = st.text_input("IOP: RA")
-               
+                vacol1, vacol2 = st.columns(2)
+                with vacol1:
+                    va_la = st.text_input("VA: LA")
+                with vacol2:
+                    va_ra = st.text_input("VA: RA")
+
+                iopcol1, iopcol2 = st.columns(2)
+                with iopcol1:
+                    iop_la = st.text_input("IOP: LA")
+                with iopcol2:
+                    iop_ra = st.text_input("IOP: RA")
+
                 medication = st.text_input("Medication")
 
             if st.form_submit_button("Submit"):
+                visual_acuity = f"RA ({va_ra}) ; LA ({va_la})"
+                iop = f"RA ({iop_ra}) ; LA ({iop_la})"
                 new_entry = pd.DataFrame([{
                     "Date": date,
                     "Patient_ID": next_id,
