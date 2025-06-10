@@ -166,23 +166,24 @@ if menu == "🆕 New Patient":
                             st.markdown("---")
                             st.subheader("🖨️ Would you like to print this record?")
                             html_content = df.loc[[idx]].to_html(index=False)
-                            st.components.v1.html(f"""
+                            html_content = df.loc[[idx]].to_html(index=False)
+                            html = f"""
                             <html>
                             <head>
                             <style>
-                                table {
+                                table {{
                                     width: 100%;
                                     border-collapse: collapse;
                                     font-family: Arial, sans-serif;
-                                }
-                                th, td {
+                                }}
+                                th, td {{
                                     border: 1px solid #999;
                                     padding: 8px;
                                     text-align: left;
-                                }
-                                th {
+                                }}
+                                th {{
                                     background-color: #f2f2f2;
-                                }
+                                }}
                             </style>
                             </head>
                             <body>
@@ -193,7 +194,8 @@ if menu == "🆕 New Patient":
                                 </script>
                             </body>
                             </html>
-                            """, height=600, scrolling=True)
+                            """
+                            st.components.v1.html(html, height=600, scrolling=True)
                             st.download_button(
                                 label="🖨️ Download Printable Record",
                                 data=df.loc[[idx]].to_csv(index=False),
