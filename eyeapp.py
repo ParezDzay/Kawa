@@ -142,11 +142,14 @@ if menu == "🆕 New Patient":
                     with st.form(f"form_{row['Patient_ID']}", clear_on_submit=True):
                         col1, col2 = st.columns(2)
                         with col1:
-                            diagnosis = st.text_input("Diagnosis", value=selected["Diagnosis"].values[0])
-                            visual_acuity = st.text_input("VA: RA ( ) and LA ( )", value=selected["Visual_Acuity"].values[0])
+                            ac = st.text_input("AC")
+                            fundus = st.text_input("Fundus")
+                            us = st.text_input("U/S")
+                            oct_ffa = st.text_input("OCT/FFA")
                         with col2:
-                            iop = st.text_input("IOP: RA ( ) and LA ( )", value=selected["IOP"].values[0])
-                            medication = st.text_input("Medication", value=selected["Medication"].values[0])
+                            diagnosis = st.text_input("Diagnosis", value=selected["Diagnosis"].values[0])
+                            treatment = st.text_input("Treatment")
+                            plan = st.text_input("Plan"), value=selected["Medication"].values[0])
 
                         if st.form_submit_button("Update Record"):
                             ac = st.text_input("AC")
@@ -157,8 +160,7 @@ if menu == "🆕 New Patient":
                             plan = st.text_input("Plan")
 
                             df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
-                                ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
-                            ]
+                                ac.strip(), fundus.strip(), us.strip(), oc
                             try:
                                 df.to_csv(file_path, index=False)
                                 st.success("✅ Updated locally.")
