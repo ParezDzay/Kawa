@@ -65,11 +65,11 @@ if "active_tab" not in st.session_state:
     st.session_state.active_tab = "📋 Pre-Visit Entry"
 
 if menu == "🆕 New Patient":
-    tabs = st.tabs(["📋 Pre-Visit Entry", "⏳ Waiting List", "🩺 Post-Visit Update"])
+    tabs = st.tabs(["📋 Pre-Visit Entry (Secretary)", "⏳ Waiting List", "🩺 Post-Visit Update (Doctor)"])
 
     # --- Pre-Visit Entry ---
     with tabs[0]:
-        st.title("📋 Pre-Visit Entry")
+        st.title("📋 Pre-Visit Entry (Secretary)")
 
         try:
             last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\d+)')[0].astype(int).max()
@@ -99,7 +99,7 @@ if menu == "🆕 New Patient":
                     "Age": age,
                     "Gender": gender,
                     "Phone_Number": phone,
-                    "Diagnosis": pd.NA,
+                    "Diagnosis": "",
                     "Visual_Acuity": visual_acuity,
                     "IOP": iop,
                     "Medication": medication
@@ -119,8 +119,7 @@ if menu == "🆕 New Patient":
     # --- Waiting List ---
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
-        df["Diagnosis_cleaned"] = df["Diagnosis"].replace("", pd.NA)
-        waiting_df = df[df["Diagnosis_cleaned"].isna()].drop(columns=["Diagnosis_cleaned"])
+        waiting_df = df[df["Diagnosis"].astype(str).str.strip() == ""]
 
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
@@ -129,12 +128,12 @@ if menu == "🆕 New Patient":
                 btn = f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"
                 if st.button(btn, key=row["Patient_ID"]):
                     st.session_state.selected_id_from_waiting = row["Patient_ID"]
-                    st.session_state.active_tab = "🩺 Post-Visit Update"
+                    st.session_state.active_tab = "🩺 Post-Visit Update (Doctor)"
                     st.experimental_rerun()
 
     # --- Post-Visit Update ---
     with tabs[2]:
-        st.title("🩺 Post-Visit Update")
+        st.title("🩺 Post-Visit Update (Doctor)")
         if df.empty or df["Patient_ID"].isna().all():
             st.warning("No patient records.")
         else:
@@ -152,7 +151,7 @@ if menu == "🆕 New Patient":
                 with st.form("post_visit_form", clear_on_submit=True):
                     col1, col2 = st.columns(2)
                     with col1:
-                        diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0] or "")
+                        diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0])
                         visual_acuity = st.text_input("VA: RA ( ) and LA ( )", value=record["Visual_Acuity"].values[0])
                     with col2:
                         iop = st.text_input("IOP: RA ( ) and LA ( )", value=record["IOP"].values[0])
