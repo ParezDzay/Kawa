@@ -97,7 +97,7 @@ if menu == "🆕 New Patient":
                 with iopcol2:
                     iop_ra = st.text_input("IOP: RA")
 
-                medication = st.text_input("Medications")
+                medication = st.text_input("Medication")
 
             if st.form_submit_button("Submit"):
                 visual_acuity = f"RA ({va_ra}) ; LA ({va_la})"
@@ -150,7 +150,15 @@ if menu == "🆕 New Patient":
 
                         if st.form_submit_button("Update Record"):
                             idx = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
-                            df.loc[idx, ["Diagnosis"
+                            ac = st.text_input("AC")
+fundus = st.text_input("Fundus")
+us = st.text_input("U/S")
+oct_ffa = st.text_input("OCT/FFA")
+treatment = st.text_input("Treatment")
+plan = st.text_input("Plan")
+
+                            df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
+                                ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                             ]
                             try:
                                 df.to_csv(file_path, index=False)
