@@ -140,7 +140,7 @@ if menu == "🆕 New Patient":
                     col1, col2 = st.columns(2)
                     with col1:
                         diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0])
-                        visual_acuity = st.text_input("VA: RA [];LA []", value=record["Visual_Acuity"].values[0])
+                        visual_acuity = st.text_input("VA: RA ( ) and LA ( )", value=record["Visual_Acuity"].values[0])
                     with col2:
                         iop = st.text_input("IOP: RA ( ) and LA ( )", value=record["IOP"].values[0])
                         medication = st.text_input("Medication", value=record["Medication"].values[0])
