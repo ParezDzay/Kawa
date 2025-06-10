@@ -72,7 +72,7 @@ if menu == "🌟 New Patient":
         st.title("📋 Pre-Visit Entry")
 
         try:
-            last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\d+)')[0].astype(int).max()
+            last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\\d+)')[0].astype(int).max()
             next_id = f"{last_id + 1:04d}"
         except:
             next_id = "0001"
@@ -213,7 +213,7 @@ if menu == "🌟 New Patient":
                             </div>
                             <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px; margin-top:20px;">🖨️ Print This Page</button></center>
                             """
-                            st.components.v1.html(html, height=1100)
+                            st.components.v1.html(html, height=1200)
 
                             updated_ids.append(row['Patient_ID'])
 
