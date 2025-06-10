@@ -141,9 +141,9 @@ if menu == "🆕 New Patient":
                     selected = df[df["Patient_ID"] == row["Patient_ID"]]
                     with st.form(f"form_{row['Patient_ID']}", clear_on_submit=True):
                         col1, col2 = st.columns(2)
-                        ac = st.text_input("AC", key=f"ac_{row['Patient_ID']}")
-st.markdown("<br>", unsafe_allow_html=True)
-fundus = st.text_input("Fundus", key=f"fundus_{row['Patient_ID']}")
+                        with col1:
+                            ac = st.text_input("AC")
+                            fundus = st.text_input("Fundus")
                             us = st.text_input("U/S")
                             oct_ffa = st.text_input("OCT/FFA")
                         with col2:
@@ -160,8 +160,8 @@ fundus = st.text_input("Fundus", key=f"fundus_{row['Patient_ID']}")
                             plan = st.text_input("Plan")
 
                             df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
-    ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
-]
+                                ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
+                            ]
                             try:
                                 df.to_csv(file_path, index=False)
                                 st.success("✅ Updated locally.")
