@@ -198,9 +198,3 @@ elif menu == "📊 View Data":
             file_name="all_eye_patients.csv",
             mime="text/csv"
         )
-
-AttributeError: This app has encountered an error. The original error message is redacted to prevent data leaks. Full error details have been recorded in the logs (if you're on Streamlit Cloud, click on 'Manage app' in the lower right of your app).
-Traceback:
-File "/mount/src/kawa/eyeapp.py", line 135, in <module>
-    st.experimental_rerun()
-    ^^^^^^^^^^^^^^^^^^^^^
