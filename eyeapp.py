@@ -132,14 +132,8 @@ if menu == "🌟 New Patient":
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
         filtered_df = df.copy()
-        filtered_df["Diagnosis"] = filtered_df["Diagnosis"].fillna("").astype(str).str.strip()
-        filtered_df["Treatment"] = filtered_df.get("Treatment", "").fillna("").astype(str).str.strip()
-        filtered_df["Plan"] = filtered_df.get("Plan", "").fillna("").astype(str).str.strip()
-        waiting_df = filtered_df[df["Patient_ID"].isin(
-            df[(df["Diagnosis"].fillna("").astype(str).str.strip() == "") &
-               (df["Treatment"].fillna("").astype(str).str.strip() == "") &
-               (df["Plan"].fillna("").astype(str).str.strip() == "")]["Patient_ID"]
-        )]
+        filtered_df[["Diagnosis", "Treatment", "Plan"]] = filtered_df[["Diagnosis", "Treatment", "Plan"]].fillna("").astype(str)
+        waiting_df = filtered_df[(filtered_df["Diagnosis"] == "") & (filtered_df["Treatment"] == "") & (filtered_df["Plan"] == "")]
 
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
@@ -174,55 +168,49 @@ if menu == "🌟 New Patient":
                             else:
                                 st.warning("⚠️ GitHub push failed.")
 
-                            st.session_state.print_ready_row = df.loc[[idx]]
-                            st.session_state.print_ready_id = row["Patient_ID"]
-                            st.session_state.print_ready = True
-                            st.rerun()
+                            record = df.loc[idx]
+                            html = f"""
+                            <style>
+                                body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                                h2 {{ color: #2c3e50; }}
+                                table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+                                td, th {{ border: 1px solid #ddd; padding: 8px; }}
+                                th {{ background-color: #f2f2f2; text-align: left; }}
+                            </style>
+                            <h2>Patient Record Summary</h2>
+                            <h3>Pre-Visit Information</h3>
+                            <table>
+                                <tr><th>Date</th><td>{record['Date']}</td></tr>
+                                <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
+                                <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
+                                <tr><th>Age</th><td>{record['Age']}</td></tr>
+                                <tr><th>Gender</th><td>{record['Gender']}</td></tr>
+                                <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
+                                <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
+                                <tr><th>IOP</th><td>{record['IOP']}</td></tr>
+                                <tr><th>Medication</th><td>{record['Medication']}</td></tr>
+                            </table>
+                            <h3>Doctor's Update</h3>
+                            <table>
+                                <tr><th>AC</th><td>{record.get('AC', '')}</td></tr>
+                                <tr><th>Fundus</th><td>{record.get('Fundus', '')}</td></tr>
+                                <tr><th>U/S</th><td>{record.get('U/S', '')}</td></tr>
+                                <tr><th>OCT/FFA</th><td>{record.get('OCT/FFA', '')}</td></tr>
+                                <tr><th>Diagnosis</th><td>{record.get('Diagnosis', '')}</td></tr>
+                                <tr><th>Treatment</th><td>{record.get('Treatment', '')}</td></tr>
+                                <tr><th>Plan</th><td>{record.get('Plan', '')}</td></tr>
+                            </table>
+                            <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px;">🖨️ Print This Page</button></center>
+                            """
+                            st.components.v1.html(html, height=900)
+
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
-
-            if st.session_state.get("print_ready", False):
-                record = st.session_state["print_ready_row"].iloc[0]
-                html = f"""
-                <style>
-                    body {{ font-family: Arial, sans-serif; padding: 20px; }}
-                    h2 {{ color: #2c3e50; }}
-                    table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-                    td, th {{ border: 1px solid #ddd; padding: 8px; }}
-                    th {{ background-color: #f2f2f2; text-align: left; }}
-                </style>
-                <h2>Patient Record Summary</h2>
-                <h3>Pre-Visit Information</h3>
-                <table>
-                    <tr><th>Date</th><td>{record['Date']}</td></tr>
-                    <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
-                    <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
-                    <tr><th>Age</th><td>{record['Age']}</td></tr>
-                    <tr><th>Gender</th><td>{record['Gender']}</td></tr>
-                    <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
-                    <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
-                    <tr><th>IOP</th><td>{record['IOP']}</td></tr>
-                    <tr><th>Medication</th><td>{record['Medication']}</td></tr>
-                </table>
-                <h3>Doctor's Update</h3>
-                <table>
-                    <tr><th>AC</th><td>{record.get('AC', '')}</td></tr>
-                    <tr><th>Fundus</th><td>{record.get('Fundus', '')}</td></tr>
-                    <tr><th>U/S</th><td>{record.get('U/S', '')}</td></tr>
-                    <tr><th>OCT/FFA</th><td>{record.get('OCT/FFA', '')}</td></tr>
-                    <tr><th>Diagnosis</th><td>{record.get('Diagnosis', '')}</td></tr>
-                    <tr><th>Treatment</th><td>{record.get('Treatment', '')}</td></tr>
-                    <tr><th>Plan</th><td>{record.get('Plan', '')}</td></tr>
-                </table>
-                <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px;">🖨️ Print This Page</button></center>
-                """
-                st.components.v1.html(html, height=900)
-                st.session_state.print_ready = False
 
 # --- View Data ---
 elif menu == "📊 View Data":
     st.title("📊 Patient Records")
-    tab1, tab2 = st.tabs(["📋 All Records", "📅 Download CSV"])
+    tab1, tab2 = st.tabs(["📋 All Records", "🗕️ Download CSV"])
     with tab1:
         st.dataframe(df, use_container_width=True)
     with tab2:
