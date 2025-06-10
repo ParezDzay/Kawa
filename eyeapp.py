@@ -51,11 +51,9 @@ file_path = "eye_data.csv"
 # Initialize file
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
-        "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number", "Address",
-        "Medical_Record_Number", "Diagnosis", "Eye_Affected", "Visual_Acuity_Right",
-        "Visual_Acuity_Left", "Intraocular_Pressure_Right", "Intraocular_Pressure_Left",
-        "Treatment_Provided", "Medication_Prescribed", "Surgery_Scheduled",
-        "Doctor_Name", "Next_Visit_Date", "Remarks"
+        "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
+        "Diagnosis", "Eye_Affected", "VA_RA", "VA_LA", "IOP_RA", "IOP_LA",
+        "Medication"
     ]).to_csv(file_path, index=False)
 
 # Load data
@@ -66,12 +64,11 @@ df.columns = df.columns.str.strip().str.replace('\n', ' ').str.replace('"', '')
 menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
 
 if menu == "🆕 New Patient":
-    tab1, tab2 = st.tabs(["📋 Pre-Visit Entry", "🩺 Post-Visit Update (Doctor)"])
+    tab1, tab2 = st.tabs(["📋 Pre-Visit Entry (Secretary)", "🩺 Post-Visit Update (Doctor)"])
 
     with tab1:
-        st.title("📋 Pre-Visit Entry")
+        st.title("📋 Pre-Visit Entry (Secretary)")
 
-        # Generate auto-incremented Patient_ID
         try:
             last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\d+)')[0].astype(int).max()
             next_id = f"{last_id + 1:04d}"
@@ -88,11 +85,13 @@ if menu == "🆕 New Patient":
                 age = st.number_input("Age", min_value=0, max_value=120)
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
-                address = st.text_input("Address")
             with col2:
-                mrn = st.text_input("Medical Record Number")
-                next_visit = st.date_input("Next Visit Date")
-                remarks = st.text_input("Remarks")
+                eye_affected = st.selectbox("Eye Affected", ["Right", "Left", "Both"])
+                va_ra = st.text_input("VA: RA")
+                va_la = st.text_input("VA: LA")
+                iop_ra = st.number_input("IOP: RA", step=0.1)
+                iop_la = st.number_input("IOP: LA", step=0.1)
+                medication = st.text_input("Medication")
 
             submitted = st.form_submit_button("Submit Pre-Visit Entry")
             if submitted:
@@ -103,20 +102,13 @@ if menu == "🆕 New Patient":
                     "Age": age,
                     "Gender": gender,
                     "Phone_Number": phone,
-                    "Address": address,
-                    "Medical_Record_Number": mrn,
                     "Diagnosis": "",
-                    "Eye_Affected": "",
-                    "Visual_Acuity_Right": "",
-                    "Visual_Acuity_Left": "",
-                    "Intraocular_Pressure_Right": "",
-                    "Intraocular_Pressure_Left": "",
-                    "Treatment_Provided": "",
-                    "Medication_Prescribed": "",
-                    "Surgery_Scheduled": "",
-                    "Doctor_Name": "",
-                    "Next_Visit_Date": next_visit,
-                    "Remarks": remarks
+                    "Eye_Affected": eye_affected,
+                    "VA_RA": va_ra,
+                    "VA_LA": va_la,
+                    "IOP_RA": iop_ra,
+                    "IOP_LA": iop_la,
+                    "Medication": medication
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
                 try:
@@ -154,27 +146,22 @@ if menu == "🆕 New Patient":
                     with col1:
                         diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0])
                         eye_affected = st.selectbox("Eye Affected", ["Right", "Left", "Both"])
-                        visual_right = st.text_input("Visual Acuity Right", value=record["Visual_Acuity_Right"].values[0])
-                        visual_left = st.text_input("Visual Acuity Left", value=record["Visual_Acuity_Left"].values[0])
+                        va_ra = st.text_input("VA: RA", value=record["VA_RA"].values[0])
+                        va_la = st.text_input("VA: LA", value=record["VA_LA"].values[0])
                     with col2:
-                        pressure_right = st.number_input("IOP Right", value=float(record["Intraocular_Pressure_Right"].fillna(0).values[0]), step=1.0)
-                        pressure_left = st.number_input("IOP Left", value=float(record["Intraocular_Pressure_Left"].fillna(0).values[0]), step=1.0)
-                        treatment = st.text_input("Treatment Provided", value=record["Treatment_Provided"].values[0])
-                        medication = st.text_input("Medication Prescribed", value=record["Medication_Prescribed"].values[0])
-                        surgery = st.text_input("Surgery Scheduled", value=record["Surgery_Scheduled"].values[0])
-                        doctor = st.text_input("Doctor Name", value=record["Doctor_Name"].values[0])
+                        iop_ra = st.number_input("IOP: RA", value=float(record["IOP_RA"].fillna(0).values[0]), step=0.1)
+                        iop_la = st.number_input("IOP: LA", value=float(record["IOP_LA"].fillna(0).values[0]), step=0.1)
+                        medication = st.text_input("Medication", value=record["Medication"].values[0])
 
                     submitted = st.form_submit_button("Update Patient Record")
                     if submitted:
                         idx = df[df["Patient_ID"] == selected_id].index[0]
                         df.loc[idx, [
-                            "Diagnosis", "Eye_Affected", "Visual_Acuity_Right", "Visual_Acuity_Left",
-                            "Intraocular_Pressure_Right", "Intraocular_Pressure_Left",
-                            "Treatment_Provided", "Medication_Prescribed", "Surgery_Scheduled", "Doctor_Name"
+                            "Diagnosis", "Eye_Affected", "VA_RA", "VA_LA",
+                            "IOP_RA", "IOP_LA", "Medication"
                         ]] = [
-                            diagnosis, eye_affected, visual_right, visual_left,
-                            pressure_right, pressure_left,
-                            treatment, medication, surgery, doctor
+                            diagnosis, eye_affected, va_ra, va_la,
+                            iop_ra, iop_la, medication
                         ]
 
                         try:
