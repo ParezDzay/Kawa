@@ -97,7 +97,7 @@ if menu == "🆕 New Patient":
                 with iopcol2:
                     iop_ra = st.text_input("IOP: RA")
 
-                medication = st.text_input("Medication")
+                medications = st.text_input("Medications")
 
             if st.form_submit_button("Submit"):
                 visual_acuity = f"RA ({va_ra}) ; LA ({va_la})"
@@ -112,7 +112,7 @@ if menu == "🆕 New Patient":
                     "Diagnosis": "",
                     "Visual_Acuity": visual_acuity,
                     "IOP": iop,
-                    "Medication": medication
+                    "Medications": medications
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
                 try:
