@@ -66,10 +66,10 @@ df.columns = df.columns.str.strip().str.replace('\n', ' ').str.replace('"', '')
 menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
 
 if menu == "🆕 New Patient":
-    tab1, tab2 = st.tabs(["📋 Pre-Visit Entry (Secretary)", "🩺 Post-Visit Update (Doctor)"])
+    tab1, tab2 = st.tabs(["📋 Pre-Visit Entry", "🩺 Post-Visit Update (Doctor)"])
 
     with tab1:
-        st.title("📋 Pre-Visit Entry (Secretary)")
+        st.title("📋 Pre-Visit Entry")
 
         # Generate auto-incremented Patient_ID
         try:
