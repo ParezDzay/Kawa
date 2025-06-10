@@ -50,7 +50,7 @@ file_path = "eye_data.csv"
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Diagnosis", "Visual_Acuity", "IOP", "Medication"
+        "Diagnosis", "Visual_Acuity", "IOP", "Medications"
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
