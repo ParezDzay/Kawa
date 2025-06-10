@@ -163,9 +163,15 @@ if menu == "🆕 New Patient":
                                 ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                             ]
 
-                            with st.expander("🖨️ Would you like to print this record?"):
-                                st.dataframe(df.loc[[idx]])
-                                st.download_button(
+                            st.markdown("---")
+st.subheader("🖨️ Would you like to print this record?")
+st.dataframe(df.loc[[idx]])
+st.download_button(
+    label="🖨️ Download Printable Record",
+    data=df.loc[[idx]].to_csv(index=False),
+    file_name=f"patient_{row['Patient_ID']}_record.csv",
+    mime="text/csv"
+)
                                     label="🖨️ Download Printable Record",
                                     data=df.loc[[idx]].to_csv(index=False),
                                     file_name=f"patient_{row['Patient_ID']}_record.csv",
