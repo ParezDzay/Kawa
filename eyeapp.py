@@ -85,7 +85,7 @@ if menu == "🆕 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                VA = st.text_input("VA")
+                VA = st.text_input("VA: LA"); VA = st.text_input("VA: RA")
                 iop = st.text_input("IOP")
                 medication = st.text_input("Medication")
 
