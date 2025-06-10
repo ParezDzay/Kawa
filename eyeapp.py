@@ -2,6 +2,51 @@ import streamlit as st
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+import base64
+import requests
+from datetime import datetime
+
+# GitHub push function
+def push_to_github(file_path, commit_message):
+    try:
+        token = st.secrets["github"]["token"]
+        username = st.secrets["github"]["username"]
+        repo = st.secrets["github"]["repo"]
+        branch = st.secrets["github"]["branch"]
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        encoded_content = base64.b64encode(content.encode()).decode()
+        filename = os.path.basename(file_path)
+        url = f"https://api.github.com/repos/{username}/{repo}/contents/{filename}"
+
+        headers = {
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github+json"
+        }
+
+        response = requests.get(url, headers=headers)
+        sha = response.json().get("sha") if response.status_code == 200 else None
+
+        payload = {
+            "message": commit_message,
+            "content": encoded_content,
+            "branch": branch
+        }
+        if sha:
+            payload["sha"] = sha
+
+        res = requests.put(url, headers=headers, json=payload)
+        if res.status_code in [200, 201]:
+            return True
+        else:
+            st.error(f"❌ GitHub push failed: {res.status_code} – {res.json().get('message')}")
+            return False
+
+    except Exception as e:
+        st.error(f"🚨 Error pushing to GitHub: {e}")
+        return False
 
 # Set page config
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
@@ -53,8 +98,8 @@ texts = {
         "doctor_name": "Doctor Name",
         "next_visit": "Next Visit Date",
         "remarks": "Remarks",
-        "download": "⬇️ Download filtered data as CSV",
-        "download_all": "⬇️ Download full dataset as CSV"
+        "download": "📂 Download filtered data as CSV",
+        "download_all": "📂 Download full dataset as CSV"
     }
 }
 
@@ -64,7 +109,7 @@ language = "English"
 menu = st.sidebar.radio(
     "📁 Menu",
     [texts[language]["new_patient"], texts[language]["view_data"]],
-    index=0  # Default page is New Patient
+    index=0
 )
 
 if menu == texts[language]["view_data"]:
@@ -120,7 +165,7 @@ if menu == texts[language]["view_data"]:
             st.bar_chart(diag_counts)
 
     with col2:
-        st.subheader("🧑‍🤝‍🧑 Gender Distribution")
+        st.subheader("🧑‍🧛 Gender Distribution")
         if not df.empty and "Gender" in df:
             gender_counts = df['Gender'].value_counts()
             fig, ax = plt.subplots()
@@ -186,5 +231,9 @@ elif menu == texts[language]["new_patient"]:
 
             df = pd.concat([df, new_entry], ignore_index=True)
             df.to_csv(file_path, index=False)
-            st.success(texts[language]["success_msg"])
+            success = push_to_github(file_path, f"Patient data updated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            if success:
+                st.success("✅ New patient record added and saved to GitHub!")
+            else:
+                st.warning("⚠️ Data saved locally, but failed to push to GitHub.")
             st.rerun()
