@@ -97,7 +97,7 @@ if menu == "🆕 New Patient":
                 with iopcol2:
                     iop_ra = st.text_input("IOP: RA")
 
-                medication = st.text_input("Medication")
+                medication = st.text_input("Medications")
 
             if st.form_submit_button("Submit"):
                 visual_acuity = f"RA ({va_ra}) ; LA ({va_la})"
