@@ -56,16 +56,14 @@ if not os.path.exists(file_path):
 df = pd.read_csv(file_path)
 
 # Session state
-if "selected_id_from_waiting" not in st.session_state:
-    st.session_state.selected_id_from_waiting = None
-if "go_to_doctor_tab" not in st.session_state:
-    st.session_state.go_to_doctor_tab = False
+if "selected_waiting_id" not in st.session_state:
+    st.session_state.selected_waiting_id = None
 
 # Sidebar
 menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
 
 if menu == "🆕 New Patient":
-    tabs = st.tabs(["📋 Pre-Visit Entry (Secretary)", "⏳ Waiting List", "🩺 Post-Visit Update (Doctor)"])
+    tabs = st.tabs(["📋 Pre-Visit Entry (Secretary)", "⏳ Waiting List"])
 
     # --- Pre-Visit Entry ---
     with tabs[0]:
@@ -116,7 +114,7 @@ if menu == "🆕 New Patient":
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
 
-    # --- Waiting List ---
+    # --- Waiting List with Inline Update ---
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
         filtered_df = df.copy()
@@ -127,54 +125,32 @@ if menu == "🆕 New Patient":
             st.success("🎉 No patients are currently waiting.")
         else:
             for _, row in waiting_df.iterrows():
-                btn = f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"
-                if st.button(btn, key=row["Patient_ID"]):
-                    st.session_state.selected_id_from_waiting = row["Patient_ID"]
-                    st.session_state.go_to_doctor_tab = True
-                    st.experimental_rerun()
+                with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
+                    selected = df[df["Patient_ID"] == row["Patient_ID"]]
+                    with st.form(f"form_{row['Patient_ID']}", clear_on_submit=True):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            diagnosis = st.text_input("Diagnosis", value=selected["Diagnosis"].values[0])
+                            visual_acuity = st.text_input("VA: RA ( ) and LA ( )", value=selected["Visual_Acuity"].values[0])
+                        with col2:
+                            iop = st.text_input("IOP: RA ( ) and LA ( )", value=selected["IOP"].values[0])
+                            medication = st.text_input("Medication", value=selected["Medication"].values[0])
 
-    # --- Post-Visit Update ---
-    with tabs[2]:
-        st.title("🩺 Post-Visit Update (Doctor)")
-        if df.empty or df["Patient_ID"].isna().all():
-            st.warning("No patient records.")
-        else:
-            ids = df["Patient_ID"].dropna().unique().tolist()
-            default_idx = 0
-            if st.session_state.selected_id_from_waiting in ids:
-                default_idx = ids.index(st.session_state.selected_id_from_waiting)
-
-            selected_id = st.selectbox("Select Patient ID", ids, index=default_idx)
-            st.session_state.selected_id_from_waiting = None
-
-            record = df[df["Patient_ID"] == selected_id]
-            if record.empty:
-                st.error("Patient not found.")
-            else:
-                with st.form("post_visit_form", clear_on_submit=True):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0])
-                        visual_acuity = st.text_input("VA: RA ( ) and LA ( )", value=record["Visual_Acuity"].values[0])
-                    with col2:
-                        iop = st.text_input("IOP: RA ( ) and LA ( )", value=record["IOP"].values[0])
-                        medication = st.text_input("Medication", value=record["Medication"].values[0])
-
-                    if st.form_submit_button("Update"):
-                        idx = df[df["Patient_ID"] == selected_id].index[0]
-                        df.loc[idx, ["Diagnosis", "Visual_Acuity", "IOP", "Medication"]] = [
-                            diagnosis.strip(), visual_acuity, iop, medication
-                        ]
-                        try:
-                            df.to_csv(file_path, index=False)
-                            st.success("✅ Updated locally.")
-                            if push_to_github(file_path, f"Post-visit update for Patient {selected_id}"):
-                                st.success("✅ Pushed to GitHub.")
-                            else:
-                                st.warning("⚠️ GitHub push failed.")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Update failed: {e}")
+                        if st.form_submit_button("Update Record"):
+                            idx = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
+                            df.loc[idx, ["Diagnosis", "Visual_Acuity", "IOP", "Medication"]] = [
+                                diagnosis.strip(), visual_acuity, iop, medication
+                            ]
+                            try:
+                                df.to_csv(file_path, index=False)
+                                st.success("✅ Updated locally.")
+                                if push_to_github(file_path, f"Post-visit update for Patient {row['Patient_ID']}"):
+                                    st.success("✅ Pushed to GitHub.")
+                                else:
+                                    st.warning("⚠️ GitHub push failed.")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Update failed: {e}")
 
 # --- View Data ---
 elif menu == "📊 View Data":
@@ -189,8 +165,3 @@ elif menu == "📊 View Data":
             file_name="all_eye_patients.csv",
             mime="text/csv"
         )
-
-# Auto-switch to Doctor tab if triggered
-if st.session_state.get("go_to_doctor_tab"):
-    st.session_state.go_to_doctor_tab = False
-    st.switch_page("🆕 New Patient")  # refresh current page
