@@ -99,7 +99,7 @@ if menu == "🆕 New Patient":
                     "Age": age,
                     "Gender": gender,
                     "Phone_Number": phone,
-                    "Diagnosis": "",
+                    "Diagnosis": "",  # explicitly set empty string
                     "Visual_Acuity": visual_acuity,
                     "IOP": iop,
                     "Medication": medication
@@ -119,7 +119,11 @@ if menu == "🆕 New Patient":
     # --- Waiting List ---
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
-        waiting_df = df[df["Diagnosis"].astype(str).str.strip() == ""]
+
+        # ✅ Force fillna and strip all diagnosis entries
+        filtered_df = df.copy()
+        filtered_df["Diagnosis"] = filtered_df["Diagnosis"].fillna("").astype(str).str.strip()
+        waiting_df = filtered_df[filtered_df["Diagnosis"] == ""]
 
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
@@ -160,7 +164,7 @@ if menu == "🆕 New Patient":
                     if st.form_submit_button("Update"):
                         idx = df[df["Patient_ID"] == selected_id].index[0]
                         df.loc[idx, ["Diagnosis", "Visual_Acuity", "IOP", "Medication"]] = [
-                            diagnosis, visual_acuity, iop, medication
+                            diagnosis.strip(), visual_acuity, iop, medication
                         ]
                         try:
                             df.to_csv(file_path, index=False)
