@@ -50,7 +50,7 @@ file_path = "eye_data.csv"
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Diagnosis", "Visual_Acuity", "IOP", "Medications"
+        "Diagnosis", "Visual_Acuity", "IOP", "Medication"
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
@@ -97,7 +97,7 @@ if menu == "🆕 New Patient":
                 with iopcol2:
                     iop_ra = st.text_input("IOP: RA")
 
-                medications = st.text_input("Medications")
+                medication = st.text_input("Medication")
 
             if st.form_submit_button("Submit"):
                 visual_acuity = f"RA ({va_ra}) ; LA ({va_la})"
@@ -112,7 +112,7 @@ if menu == "🆕 New Patient":
                     "Diagnosis": "",
                     "Visual_Acuity": visual_acuity,
                     "IOP": iop,
-                    "Medications": medications
+                    "Medication": medication
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
                 try:
@@ -141,9 +141,9 @@ if menu == "🆕 New Patient":
                     selected = df[df["Patient_ID"] == row["Patient_ID"]]
                     with st.form(f"form_{row['Patient_ID']}", clear_on_submit=True):
                         col1, col2 = st.columns(2)
-                        with col1:
-                            ac = st.text_input("AC")
-                            fundus = st.text_input("Fundus")
+                        ac = st.text_input("AC", key=f"ac_{row['Patient_ID']}")
+st.markdown("<br>", unsafe_allow_html=True)
+fundus = st.text_input("Fundus", key=f"fundus_{row['Patient_ID']}")
                             us = st.text_input("U/S")
                             oct_ffa = st.text_input("OCT/FFA")
                         with col2:
@@ -160,8 +160,8 @@ if menu == "🆕 New Patient":
                             plan = st.text_input("Plan")
 
                             df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
-                                ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
-                            ]
+    ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
+]
                             try:
                                 df.to_csv(file_path, index=False)
                                 st.success("✅ Updated locally.")
