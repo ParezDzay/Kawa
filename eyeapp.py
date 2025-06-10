@@ -149,13 +149,12 @@ if menu == "🆕 New Patient":
                             medication = st.text_input("Medication", value=selected["Medication"].values[0])
 
                         if st.form_submit_button("Update Record"):
-                            idx = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
                             ac = st.text_input("AC")
-fundus = st.text_input("Fundus")
-us = st.text_input("U/S")
-oct_ffa = st.text_input("OCT/FFA")
-treatment = st.text_input("Treatment")
-plan = st.text_input("Plan")
+                            fundus = st.text_input("Fundus")
+                            us = st.text_input("U/S")
+                            oct_ffa = st.text_input("OCT/FFA")
+                            treatment = st.text_input("Treatment")
+                            plan = st.text_input("Plan")
 
                             df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
                                 ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
