@@ -171,24 +171,62 @@ if menu == "🆕 New Patient":
                             <html>
                             <head>
                             <style>
-                                table {{
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    padding: 30px;
+                                    line-height: 1.6;
+                                }
+                                h2 {
+                                    color: #2c3e50;
+                                }
+                                .section-title {
+                                    margin-top: 20px;
+                                    font-size: 18px;
+                                    font-weight: bold;
+                                    border-bottom: 1px solid #ccc;
+                                    padding-bottom: 4px;
+                                }
+                                table {
                                     width: 100%;
                                     border-collapse: collapse;
-                                    font-family: Arial, sans-serif;
-                                }}
-                                th, td {{
+                                    margin-top: 10px;
+                                }
+                                th, td {
                                     border: 1px solid #999;
                                     padding: 8px;
                                     text-align: left;
-                                }}
-                                th {{
+                                }
+                                th {
                                     background-color: #f2f2f2;
-                                }}
+                                }
                             </style>
                             </head>
                             <body>
                                 <h2>Patient Record - {row['Patient_ID']}</h2>
-                                {html_content}
+
+                                <div class='section-title'>📝 Pre-Visit Information</div>
+                                <table>
+                                    <tr><th>Date</th><td>{row['Date']}</td></tr>
+                                    <tr><th>Full Name</th><td>{row['Full_Name']}</td></tr>
+                                    <tr><th>Age</th><td>{row['Age']}</td></tr>
+                                    <tr><th>Gender</th><td>{row['Gender']}</td></tr>
+                                    <tr><th>Phone Number</th><td>{row['Phone_Number']}</td></tr>
+                                    <tr><th>Visual Acuity</th><td>{row['Visual_Acuity']}</td></tr>
+                                    <tr><th>IOP</th><td>{row['IOP']}</td></tr>
+                                    <tr><th>Medication</th><td>{row['Medication']}</td></tr>
+                                </table>
+
+                                <div class='section-title'>🩺 Doctor's Update</div>
+                                <table>
+                                    <tr><th>AC</th><td>{df.loc[idx, 'AC']}</td></tr>
+                                    <tr><th>Fundus</th><td>{df.loc[idx, 'Fundus']}</td></tr>
+                                    <tr><th>U/S</th><td>{df.loc[idx, 'U/S']}</td></tr>
+                                    <tr><th>OCT/FFA</th><td>{df.loc[idx, 'OCT/FFA']}</td></tr>
+                                    <tr><th>Diagnosis</th><td>{df.loc[idx, 'Diagnosis']}</td></tr>
+                                    <tr><th>Treatment</th><td>{df.loc[idx, 'Treatment']}</td></tr>
+                                    <tr><th>Plan</th><td>{df.loc[idx, 'Plan']}</td></tr>
+                                </table>
+
                                 <script>
                                     window.print();
                                 </script>
