@@ -3,6 +3,6 @@ Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Address,Medical_Record_Number,
 2025-06-04,P002,Maha Khalid,60,Female,7709876543.0,"Erbil, Iraq",MR654321,Glaucoma,Both,6/12,6/18,22.0,24.0,Eye drops prescribed,Timolol,No,Dr. Ahmed Karim,2025-06-20,Pressure needs monitoring
 2025-06-04,Parez,parez dzay,32,Male,,erbil,,,Right,,,0.0,0.0,,,,,2025-06-04,
 2025-06-11,jsndl,jldc,32,Male,,,,,Right,,,0.0,0.0,,,,,2025-06-04,
-2025-06-10,naria,,0,Male,,,,,Right,,,0.0,0.0,,,,,2025-06-10,
+2025-06-10,naria,,0,Male,,,,nan,Right,nan,nan,0.0,0.0,nan,nan,nan,,2025-06-10,okkk
 2025-06-10,Naria,,0,Male,,,,,,,,,,,,,,2025-06-10,
 2025-06-10,,KN,0,Male,,,,,,,,,,,,,,2025-06-10,
