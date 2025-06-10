@@ -52,8 +52,8 @@ file_path = "eye_data.csv"
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Diagnosis", "VA_RA", "VA_LA", "IOP_RA", "IOP_LA",
-        "Medication"
+        "Diagnosis", "Visual_Acuity_RA", "Visual_Acuity_LA",
+        "IOP_RA", "IOP_LA", "Medication"
     ]).to_csv(file_path, index=False)
 
 # Load data
@@ -69,6 +69,7 @@ if menu == "🆕 New Patient":
     with tab1:
         st.title("📋 Pre-Visit Entry (Secretary)")
 
+        # Generate auto-incremented Patient_ID
         try:
             last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\d+)')[0].astype(int).max()
             next_id = f"{last_id + 1:04d}"
@@ -86,11 +87,10 @@ if menu == "🆕 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                eye_affected = st.selectbox("Eye Affected", ["Right", "Left", "Both"])
-                va_ra = st.text_input("VA: RA")
-                va_la = st.text_input("VA: LA")
-                iop_ra = st.number_input("IOP: RA", step=0.1)
-                iop_la = st.number_input("IOP: LA", step=0.1)
+                va_ra = st.text_input("VA: RA ( )", placeholder="e.g., 6/6")
+                va_la = st.text_input("VA: LA ( )", placeholder="e.g., 6/9")
+                iop_ra = st.number_input("IOP: RA", min_value=0.0, step=1.0)
+                iop_la = st.number_input("IOP: LA", min_value=0.0, step=1.0)
                 medication = st.text_input("Medication")
 
             submitted = st.form_submit_button("Submit Pre-Visit Entry")
@@ -103,9 +103,8 @@ if menu == "🆕 New Patient":
                     "Gender": gender,
                     "Phone_Number": phone,
                     "Diagnosis": "",
-                    "Eye_Affected": eye_affected,
-                    "VA_RA": va_ra,
-                    "VA_LA": va_la,
+                    "Visual_Acuity_RA": va_ra,
+                    "Visual_Acuity_LA": va_la,
                     "IOP_RA": iop_ra,
                     "IOP_LA": iop_la,
                     "Medication": medication
@@ -145,22 +144,21 @@ if menu == "🆕 New Patient":
                     col1, col2 = st.columns(2)
                     with col1:
                         diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0])
-                        eye_affected = st.selectbox("Eye Affected", ["Right", "Left", "Both"])
-                        va_ra = st.text_input("VA: RA", value=record["VA_RA"].values[0])
-                        va_la = st.text_input("VA: LA", value=record["VA_LA"].values[0])
+                        va_ra = st.text_input("VA: RA ( )", value=record["Visual_Acuity_RA"].values[0])
+                        va_la = st.text_input("VA: LA ( )", value=record["Visual_Acuity_LA"].values[0])
                     with col2:
-                        iop_ra = st.number_input("IOP: RA", value=float(record["IOP_RA"].fillna(0).values[0]), step=0.1)
-                        iop_la = st.number_input("IOP: LA", value=float(record["IOP_LA"].fillna(0).values[0]), step=0.1)
+                        iop_ra = st.number_input("IOP: RA", value=float(record["IOP_RA"].fillna(0).values[0]), step=1.0)
+                        iop_la = st.number_input("IOP: LA", value=float(record["IOP_LA"].fillna(0).values[0]), step=1.0)
                         medication = st.text_input("Medication", value=record["Medication"].values[0])
 
                     submitted = st.form_submit_button("Update Patient Record")
                     if submitted:
                         idx = df[df["Patient_ID"] == selected_id].index[0]
                         df.loc[idx, [
-                            "Diagnosis", "Eye_Affected", "VA_RA", "VA_LA",
+                            "Diagnosis", "Visual_Acuity_RA", "Visual_Acuity_LA",
                             "IOP_RA", "IOP_LA", "Medication"
                         ]] = [
-                            diagnosis, eye_affected, va_ra, va_la,
+                            diagnosis, va_ra, va_la,
                             iop_ra, iop_la, medication
                         ]
 
