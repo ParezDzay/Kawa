@@ -62,9 +62,9 @@ if "print_ready" not in st.session_state:
     st.session_state.print_ready = False
 
 # Sidebar
-menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
+menu = st.sidebar.radio("📁 Menu", ["🌟 New Patient", "📊 View Data"], index=0)
 
-if menu == "🆕 New Patient":
+if menu == "🌟 New Patient":
     tabs = st.tabs(["📋 Pre-Visit Entry", "⏳ Waiting List / Doctor update"])
 
     # --- Pre-Visit Entry ---
@@ -182,18 +182,46 @@ if menu == "🆕 New Patient":
                             st.error(f"❌ Update failed: {e}")
 
             if st.session_state.get("print_ready", False):
-                st.download_button(
-                    label="🖨️ Download Printable Record",
-                    data=st.session_state["print_ready_row"].to_csv(index=False),
-                    file_name=f"patient_{st.session_state['print_ready_id']}_record.csv",
-                    mime="text/csv"
-                )
+                record = st.session_state["print_ready_row"].iloc[0]
+                html = f"""
+                <style>
+                    body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                    h2 {{ color: #2c3e50; }}
+                    table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+                    td, th {{ border: 1px solid #ddd; padding: 8px; }}
+                    th {{ background-color: #f2f2f2; text-align: left; }}
+                </style>
+                <h2>Patient Record Summary</h2>
+                <h3>Pre-Visit Information</h3>
+                <table>
+                    <tr><th>Date</th><td>{record['Date']}</td></tr>
+                    <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
+                    <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
+                    <tr><th>Age</th><td>{record['Age']}</td></tr>
+                    <tr><th>Gender</th><td>{record['Gender']}</td></tr>
+                    <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
+                    <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
+                    <tr><th>IOP</th><td>{record['IOP']}</td></tr>
+                    <tr><th>Medication</th><td>{record['Medication']}</td></tr>
+                </table>
+                <h3>Doctor's Update</h3>
+                <table>
+                    <tr><th>AC</th><td>{record.get('AC', '')}</td></tr>
+                    <tr><th>Fundus</th><td>{record.get('Fundus', '')}</td></tr>
+                    <tr><th>U/S</th><td>{record.get('U/S', '')}</td></tr>
+                    <tr><th>OCT/FFA</th><td>{record.get('OCT/FFA', '')}</td></tr>
+                    <tr><th>Diagnosis</th><td>{record.get('Diagnosis', '')}</td></tr>
+                    <tr><th>Treatment</th><td>{record.get('Treatment', '')}</td></tr>
+                    <tr><th>Plan</th><td>{record.get('Plan', '')}</td></tr>
+                </table>
+                """
+                st.components.v1.html(html, height=600, scrolling=True)
                 st.session_state.print_ready = False
 
 # --- View Data ---
 elif menu == "📊 View Data":
     st.title("📊 Patient Records")
-    tab1, tab2 = st.tabs(["📋 All Records", "📥 Download CSV"])
+    tab1, tab2 = st.tabs(["📋 All Records", "📅 Download CSV"])
     with tab1:
         st.dataframe(df, use_container_width=True)
     with tab2:
