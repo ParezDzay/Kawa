@@ -44,38 +44,37 @@ def push_to_github(file_path, commit_message):
         st.error(f"❌ GitHub push failed: {e}")
         return False
 
-# Set page config
+# Page setup
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 file_path = "eye_data.csv"
 
-# Initialize file
+# Initialize CSV if not exists
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Diagnosis", "Visual_Acuity_RA", "Visual_Acuity_LA",
-        "IOP_RA", "IOP_LA", "Medication"
+        "Diagnosis", "Visual_Acuity", "IOP", "Medication"
     ]).to_csv(file_path, index=False)
 
-# Load data
+# Load CSV
 df = pd.read_csv(file_path)
 df.columns = df.columns.str.strip().str.replace('\n', ' ').str.replace('"', '')
 
-# Sidebar Menu
+# Sidebar menu
 menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
 
 if menu == "🆕 New Patient":
     tab1, tab2 = st.tabs(["📋 Pre-Visit Entry (Secretary)", "🩺 Post-Visit Update (Doctor)"])
 
+    # --- Tab 1: Pre-Visit Entry ---
     with tab1:
         st.title("📋 Pre-Visit Entry (Secretary)")
 
-        # Generate auto-incremented Patient_ID
+        # Generate Patient ID
         try:
             last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\d+)')[0].astype(int).max()
             next_id = f"{last_id + 1:04d}"
         except:
             next_id = "0001"
-
         st.markdown(f"**Generated Patient ID:** `{next_id}`")
 
         with st.form("pre_visit_form", clear_on_submit=True):
@@ -87,10 +86,8 @@ if menu == "🆕 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                va_ra = st.text_input("VA: RA ( )", placeholder="e.g., 6/6")
-                va_la = st.text_input("VA: LA ( )", placeholder="e.g., 6/9")
-                iop_ra = st.number_input("IOP: RA", min_value=0.0, step=1.0)
-                iop_la = st.number_input("IOP: LA", min_value=0.0, step=1.0)
+                visual_acuity = st.text_input("VA: RA ( ) and LA ( )", placeholder="e.g., RA (6/6) and LA (6/9)")
+                iop = st.text_input("IOP: RA ( ) and LA ( )", placeholder="e.g., RA (15) and LA (14)")
                 medication = st.text_input("Medication")
 
             submitted = st.form_submit_button("Submit Pre-Visit Entry")
@@ -103,10 +100,8 @@ if menu == "🆕 New Patient":
                     "Gender": gender,
                     "Phone_Number": phone,
                     "Diagnosis": "",
-                    "Visual_Acuity_RA": va_ra,
-                    "Visual_Acuity_LA": va_la,
-                    "IOP_RA": iop_ra,
-                    "IOP_LA": iop_la,
+                    "Visual_Acuity": visual_acuity,
+                    "IOP": iop,
                     "Medication": medication
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
@@ -123,6 +118,7 @@ if menu == "🆕 New Patient":
                 time.sleep(2)
                 st.rerun()
 
+    # --- Tab 2: Post-Visit Update ---
     with tab2:
         st.title("🩺 Post-Visit Update (Doctor)")
         if df.empty or df["Patient_ID"].isna().all():
@@ -144,22 +140,18 @@ if menu == "🆕 New Patient":
                     col1, col2 = st.columns(2)
                     with col1:
                         diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0])
-                        va_ra = st.text_input("VA: RA ( )", value=record["Visual_Acuity_RA"].values[0])
-                        va_la = st.text_input("VA: LA ( )", value=record["Visual_Acuity_LA"].values[0])
+                        visual_acuity = st.text_input("VA: RA ( ) and LA ( )", value=record["Visual_Acuity"].values[0])
                     with col2:
-                        iop_ra = st.number_input("IOP: RA", value=float(record["IOP_RA"].fillna(0).values[0]), step=1.0)
-                        iop_la = st.number_input("IOP: LA", value=float(record["IOP_LA"].fillna(0).values[0]), step=1.0)
+                        iop = st.text_input("IOP: RA ( ) and LA ( )", value=record["IOP"].values[0])
                         medication = st.text_input("Medication", value=record["Medication"].values[0])
 
                     submitted = st.form_submit_button("Update Patient Record")
                     if submitted:
                         idx = df[df["Patient_ID"] == selected_id].index[0]
                         df.loc[idx, [
-                            "Diagnosis", "Visual_Acuity_RA", "Visual_Acuity_LA",
-                            "IOP_RA", "IOP_LA", "Medication"
+                            "Diagnosis", "Visual_Acuity", "IOP", "Medication"
                         ]] = [
-                            diagnosis, va_ra, va_la,
-                            iop_ra, iop_la, medication
+                            diagnosis, visual_acuity, iop, medication
                         ]
 
                         try:
@@ -175,6 +167,7 @@ if menu == "🆕 New Patient":
                         time.sleep(2)
                         st.rerun()
 
+# --- View Data ---
 elif menu == "📊 View Data":
     st.title("📊 Patient Records")
     tab1, tab2 = st.tabs(["📋 All Records", "📥 Download CSV"])
