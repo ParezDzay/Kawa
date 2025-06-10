@@ -165,8 +165,35 @@ if menu == "🆕 New Patient":
 
                             st.markdown("---")
                             st.subheader("🖨️ Would you like to print this record?")
-                            st.dataframe(df.loc[[idx]])
-                            st.download_button(
+                            html_content = df.loc[[idx]].to_html(index=False)
+                            st.components.v1.html(f"""
+                            <html>
+                            <head>
+                            <style>
+                                table {{
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    font-family: Arial, sans-serif;
+                                }}
+                                th, td {{
+                                    border: 1px solid #999;
+                                    padding: 8px;
+                                    text-align: left;
+                                }}
+                                th {{
+                                    background-color: #f2f2f2;
+                                }}
+                            </style>
+                            </head>
+                            <body>
+                                <h2>Patient Record - {row['Patient_ID']}</h2>
+                                {html_content}
+                                <script>
+                                    window.print();
+                                </script>
+                            </body>
+                            </html>
+                            """, height=600, scrolling=True)
                                 label="🖨️ Download Printable Record",
                                 data=df.loc[[idx]].to_csv(index=False),
                                 file_name=f"patient_{row['Patient_ID']}_record.csv",
