@@ -63,11 +63,11 @@ if "selected_waiting_id" not in st.session_state:
 menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
 
 if menu == "🆕 New Patient":
-    tabs = st.tabs(["📋 Pre-Visit Entry (Secretary)", "⏳ Waiting List"])
+    tabs = st.tabs(["📋 Pre-Visit Entry", "⏳ Waiting List / Doctor update"])
 
     # --- Pre-Visit Entry ---
     with tabs[0]:
-        st.title("📋 Pre-Visit Entry (Secretary)")
+        st.title("📋 Pre-Visit Entry")
 
         try:
             last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\d+)')[0].astype(int).max()
@@ -85,8 +85,8 @@ if menu == "🆕 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                visual_acuity = st.text_input("VA: RA ( ) and LA ( )", placeholder="e.g., RA (6/6) and LA (6/9)")
-                iop = st.text_input("IOP: RA ( ) and LA ( )", placeholder="e.g., RA (15) and LA (14)")
+                VA = st.text_input("RA" and "LA")
+                iop = st.text_input("IOP: RA ( ) and LA ( )")
                 medication = st.text_input("Medication")
 
             if st.form_submit_button("Submit"):
