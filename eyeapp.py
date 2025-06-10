@@ -172,11 +172,6 @@ if menu == "🆕 New Patient":
                                 file_name=f"patient_{row['Patient_ID']}_record.csv",
                                 mime="text/csv"
                             )
-                                    label="🖨️ Download Printable Record",
-                                    data=df.loc[[idx]].to_csv(index=False),
-                                    file_name=f"patient_{row['Patient_ID']}_record.csv",
-                                    mime="text/csv"
-                                )
 
                             try:
                                 df.to_csv(file_path, index=False)
