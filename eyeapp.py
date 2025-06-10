@@ -133,7 +133,11 @@ if menu == "🆕 New Patient":
         filtered_df["Diagnosis"] = filtered_df["Diagnosis"].fillna("").astype(str).str.strip()
         filtered_df["Treatment"] = filtered_df.get("Treatment", "").fillna("").astype(str).str.strip()
         filtered_df["Plan"] = filtered_df.get("Plan", "").fillna("").astype(str).str.strip()
-        waiting_df = filtered_df[(filtered_df["Diagnosis"] == "") & (filtered_df["Treatment"] == "") & (filtered_df["Plan"] == "")]
+        waiting_df = filtered_df[df["Patient_ID"].isin(
+            df[(df["Diagnosis"].fillna("").astype(str).str.strip() == "") &
+               (df["Treatment"].fillna("").astype(str).str.strip() == "") &
+               (df["Plan"].fillna("").astype(str).str.strip() == "")]["Patient_ID"]
+        )]
 
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
@@ -158,6 +162,16 @@ if menu == "🆕 New Patient":
                             df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
                                 ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                             ]
+
+                            with st.expander("🖨️ Would you like to print this record?"):
+                                st.dataframe(df.loc[[idx]])
+                                st.download_button(
+                                    label="🖨️ Download Printable Record",
+                                    data=df.loc[[idx]].to_csv(index=False),
+                                    file_name=f"patient_{row['Patient_ID']}_record.csv",
+                                    mime="text/csv"
+                                )
+
                             try:
                                 df.to_csv(file_path, index=False)
                                 st.success("✅ Updated locally.")
