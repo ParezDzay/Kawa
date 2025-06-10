@@ -121,7 +121,13 @@ if menu == "🆕 New Patient":
             st.warning("No data found.")
         else:
             patient_ids = df["Patient_ID"].dropna().unique()
-            selected_id = st.selectbox("Select Patient ID", patient_ids)
+            latest_id = df["Patient_ID"].dropna().iloc[-1] if not df.empty else None
+            selected_id = st.selectbox(
+                "Select Patient ID",
+                patient_ids,
+                index=patient_ids.tolist().index(latest_id) if latest_id in patient_ids else 0
+)
+
             patient_row = df[df["Patient_ID"] == selected_id].iloc[0]
 
             with st.form("post_visit_form"):
