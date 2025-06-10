@@ -76,19 +76,7 @@ if menu == "🆕 New Patient":
             col1, col2 = st.columns(2)
             with col1:
                 date = st.date_input("Date")
-                # Auto-generate Patient ID
-if "Patient_ID" in df.columns and not df["Patient_ID"].dropna().empty:
-    last_id = df["Patient_ID"].dropna().iloc[-1]
-    try:
-        last_num = int(last_id.replace("P", ""))
-    except:
-        last_num = len(df)
-    next_id = f"P{last_num + 1:03d}"
-else:
-    next_id = "P001"
-st.text_input("Patient ID", value=next_id, disabled=True)
-patient_id = next_id
-
+                patient_id = st.text_input("Patient ID")
                 full_name = st.text_input("Full Name")
                 age = st.number_input("Age", 0, 120)
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
@@ -138,8 +126,7 @@ patient_id = next_id
                 "Select Patient ID",
                 patient_ids,
                 index=patient_ids.tolist().index(latest_id) if latest_id in patient_ids else 0
-)
-
+            )
             patient_row = df[df["Patient_ID"] == selected_id].iloc[0]
 
             with st.form("post_visit_form"):
