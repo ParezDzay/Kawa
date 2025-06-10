@@ -216,7 +216,7 @@ if menu == "🌟 New Patient":
                 </table>
                 <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px;">🖨️ Print This Page</button></center>
                 """
-                st.components.v1.html(html, height=800)
+                st.components.v1.html(html, height=900)
                 st.session_state.print_ready = False
 
 # --- View Data ---
