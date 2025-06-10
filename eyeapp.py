@@ -55,14 +55,14 @@ if not os.path.exists(file_path):
 
 df = pd.read_csv(file_path)
 
-# Sidebar
-menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
-
 # Session state
 if "selected_id_from_waiting" not in st.session_state:
     st.session_state.selected_id_from_waiting = None
-if "active_tab" not in st.session_state:
-    st.session_state.active_tab = "📋 Pre-Visit Entry"
+if "go_to_doctor_tab" not in st.session_state:
+    st.session_state.go_to_doctor_tab = False
+
+# Sidebar
+menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
 
 if menu == "🆕 New Patient":
     tabs = st.tabs(["📋 Pre-Visit Entry (Secretary)", "⏳ Waiting List", "🩺 Post-Visit Update (Doctor)"])
@@ -99,7 +99,7 @@ if menu == "🆕 New Patient":
                     "Age": age,
                     "Gender": gender,
                     "Phone_Number": phone,
-                    "Diagnosis": "",  # explicitly set empty string
+                    "Diagnosis": "",
                     "Visual_Acuity": visual_acuity,
                     "IOP": iop,
                     "Medication": medication
@@ -112,15 +112,13 @@ if menu == "🆕 New Patient":
                         st.success("✅ Pushed to GitHub.")
                     else:
                         st.warning("⚠️ GitHub push failed.")
-                    st.stop()
+                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
 
     # --- Waiting List ---
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
-
-        # ✅ Force fillna and strip all diagnosis entries
         filtered_df = df.copy()
         filtered_df["Diagnosis"] = filtered_df["Diagnosis"].fillna("").astype(str).str.strip()
         waiting_df = filtered_df[filtered_df["Diagnosis"] == ""]
@@ -132,7 +130,7 @@ if menu == "🆕 New Patient":
                 btn = f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"
                 if st.button(btn, key=row["Patient_ID"]):
                     st.session_state.selected_id_from_waiting = row["Patient_ID"]
-                    st.session_state.active_tab = "🩺 Post-Visit Update (Doctor)"
+                    st.session_state.go_to_doctor_tab = True
                     st.experimental_rerun()
 
     # --- Post-Visit Update ---
@@ -148,6 +146,7 @@ if menu == "🆕 New Patient":
 
             selected_id = st.selectbox("Select Patient ID", ids, index=default_idx)
             st.session_state.selected_id_from_waiting = None
+
             record = df[df["Patient_ID"] == selected_id]
             if record.empty:
                 st.error("Patient not found.")
@@ -173,7 +172,7 @@ if menu == "🆕 New Patient":
                                 st.success("✅ Pushed to GitHub.")
                             else:
                                 st.warning("⚠️ GitHub push failed.")
-                            st.stop()
+                            st.rerun()
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
 
@@ -190,3 +189,8 @@ elif menu == "📊 View Data":
             file_name="all_eye_patients.csv",
             mime="text/csv"
         )
+
+# Auto-switch to Doctor tab if triggered
+if st.session_state.get("go_to_doctor_tab"):
+    st.session_state.go_to_doctor_tab = False
+    st.switch_page("🆕 New Patient")  # refresh current page
