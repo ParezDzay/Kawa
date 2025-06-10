@@ -1,3 +1,4 @@
 Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Address,Medical_Record_Number,Diagnosis,Eye_Affected,Visual_Acuity_Right,Visual_Acuity_Left,Intraocular_Pressure_Right,Intraocular_Pressure_Left,Treatment_Provided,Medication_Prescribed,Surgery_Scheduled,Doctor_Name,Next_Visit_Date,Remarks,Visual_Acuity_RA,Visual_Acuity_LA,IOP_RA,IOP_LA,Medication,Visual_Acuity,IOP
 2025-06-10,1,Naria,0,Male,,,,oke naria,,,,,,,,,,,,,,,,,,
-2025-06-10,2,hjk,0,Male,,,,hichi nia,,,,,,,,,,,,,,,,nan,nan,nan
+2025-06-10,2,hjk,0,Male,,,,hichi nia,,,,,,,,,,,,,,,,,,
+2025-06-10,0003,katia,0,Male,,,,,,,,,,,,,,,,,,,,,RA () ; LA (),RA () ; LA ()
