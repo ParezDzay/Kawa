@@ -214,8 +214,9 @@ if menu == "🌟 New Patient":
                     <tr><th>Treatment</th><td>{record.get('Treatment', '')}</td></tr>
                     <tr><th>Plan</th><td>{record.get('Plan', '')}</td></tr>
                 </table>
+                <script>window.print()</script>
                 """
-                st.components.v1.html(html, height=600, scrolling=True)
+                st.components.v1.html(html, height=700)
                 st.session_state.print_ready = False
 
 # --- View Data ---
