@@ -177,6 +177,7 @@ if menu == "🌟 New Patient":
                                 table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
                                 td, th {{ border: 1px solid #ddd; padding: 8px; }}
                                 th {{ background-color: #f2f2f2; text-align: left; }}
+                                .footer {{ margin-top: 30px; font-size: 14px; color: #333; text-align: center; }}
                             </style>
                             <h2>Patient Record Summary</h2>
                             <h3>Pre-Visit Information</h3>
@@ -201,9 +202,18 @@ if menu == "🌟 New Patient":
                                 <tr><th>Treatment</th><td>{record.get('Treatment', '')}</td></tr>
                                 <tr><th>Plan</th><td>{record.get('Plan', '')}</td></tr>
                             </table>
-                            <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px;">🖨️ Print This Page</button></center>
+                            <div class="footer">
+                                <strong>دكتور كاوه خليل</strong><br>
+                                ڕاوێژکاری نەشتەرگەری تۆڕی چاو<br>
+                                استشاري جراحة العيون والشبكية<br>
+                                دكتورا (بورد) الماني<br>
+                                ناونيشان/سهنته رى كلّوبالّ<br>
+                                العنوان / مركز كلوبال<br>
+                                07507712332 - 07715882299
+                            </div>
+                            <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px; margin-top:20px;">🖨️ Print This Page</button></center>
                             """
-                            st.components.v1.html(html, height=900)
+                            st.components.v1.html(html, height=1100)
 
                             updated_ids.append(row['Patient_ID'])
 
