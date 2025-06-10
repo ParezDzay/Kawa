@@ -105,7 +105,7 @@ if menu == "🆕 New Patient":
                         "Age": age,
                         "Gender": gender,
                         "Phone_Number": phone,
-                        "Diagnosis": "",
+                        "Diagnosis": pd.NA,
                         "Visual_Acuity": visual_acuity,
                         "IOP": iop,
                         "Medication": medication
@@ -120,7 +120,7 @@ if menu == "🆕 New Patient":
                             st.success("✅ Pushed to GitHub.")
                         else:
                             st.warning("⚠️ GitHub push failed.")
-                        st.stop()  # Clean rerun replacement
+                        st.stop()
                     except Exception as e:
                         st.error(f"❌ Local save failed: {e}")
 
@@ -128,7 +128,8 @@ if menu == "🆕 New Patient":
     with tabs[1]:
         if st.session_state.active_tab == "⏳ Waiting List":
             st.title("⏳ Patients Waiting for Doctor Update")
-            waiting_df = df[df["Diagnosis"].isna() | (df["Diagnosis"].astype(str).str.strip() == "")]
+            df["Diagnosis"] = df["Diagnosis"].replace('', pd.NA)
+            waiting_df = df[df["Diagnosis"].isna()]
             if waiting_df.empty:
                 st.success("🎉 No patients are currently waiting.")
             else:
@@ -163,7 +164,7 @@ if menu == "🆕 New Patient":
                     with st.form("post_visit_form", clear_on_submit=True):
                         col1, col2 = st.columns(2)
                         with col1:
-                            diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0])
+                            diagnosis = st.text_input("Diagnosis", value=record["Diagnosis"].values[0] or "")
                             visual_acuity = st.text_input("VA: RA ( ) and LA ( )", value=record["Visual_Acuity"].values[0])
                         with col2:
                             iop = st.text_input("IOP: RA ( ) and LA ( )", value=record["IOP"].values[0])
