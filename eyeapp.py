@@ -58,6 +58,8 @@ df = pd.read_csv(file_path)
 # Session state
 if "selected_waiting_id" not in st.session_state:
     st.session_state.selected_waiting_id = None
+if "print_ready" not in st.session_state:
+    st.session_state.print_ready = False
 
 # Sidebar
 menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
@@ -157,96 +159,36 @@ if menu == "🆕 New Patient":
                             treatment = st.text_input("Treatment")
                             plan = st.text_input("Plan")
 
-                        if st.form_submit_button("Update Record"):
-                            idx = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
-                            df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
-                                ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
-                            ]
+                        submitted = st.form_submit_button("Update Record")
 
-                            html = f"""
-                            <html>
-                            <head>
-                            <style>
-                                body {{
-                                    font-family: Arial, sans-serif;
-                                    padding: 30px;
-                                    line-height: 1.6;
-                                }}
-                                h2 {{
-                                    color: #2c3e50;
-                                }}
-                                .section-title {{
-                                    margin-top: 20px;
-                                    font-size: 18px;
-                                    font-weight: bold;
-                                    border-bottom: 1px solid #ccc;
-                                    padding-bottom: 4px;
-                                }}
-                                table {{
-                                    width: 100%;
-                                    border-collapse: collapse;
-                                    margin-top: 10px;
-                                }}
-                                th, td {{
-                                    border: 1px solid #999;
-                                    padding: 8px;
-                                    text-align: left;
-                                }}
-                                th {{
-                                    background-color: #f2f2f2;
-                                }}
-                            </style>
-                            </head>
-                            <body>
-                                <h2>Patient Record - {row['Patient_ID']}</h2>
+                    if submitted:
+                        idx = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
+                        df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
+                            ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
+                        ]
+                        try:
+                            df.to_csv(file_path, index=False)
+                            st.success("✅ Updated locally.")
+                            if push_to_github(file_path, f"Post-visit update for Patient {row['Patient_ID']}"):
+                                st.success("✅ Pushed to GitHub.")
+                            else:
+                                st.warning("⚠️ GitHub push failed.")
 
-                                <div class='section-title'>📝 Pre-Visit Information</div>
-                                <table>
-                                    <tr><th>Date</th><td>{row['Date']}</td></tr>
-                                    <tr><th>Full Name</th><td>{row['Full_Name']}</td></tr>
-                                    <tr><th>Age</th><td>{row['Age']}</td></tr>
-                                    <tr><th>Gender</th><td>{row['Gender']}</td></tr>
-                                    <tr><th>Phone Number</th><td>{row['Phone_Number']}</td></tr>
-                                    <tr><th>Visual Acuity</th><td>{row['Visual_Acuity']}</td></tr>
-                                    <tr><th>IOP</th><td>{row['IOP']}</td></tr>
-                                    <tr><th>Medication</th><td>{row['Medication']}</td></tr>
-                                </table>
+                            st.session_state.print_ready_row = df.loc[[idx]]
+                            st.session_state.print_ready_id = row["Patient_ID"]
+                            st.session_state.print_ready = True
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Update failed: {e}")
 
-                                <div class='section-title'>🩺 Doctor's Update</div>
-                                <table>
-                                    <tr><th>AC</th><td>{df.loc[idx, 'AC']}</td></tr>
-                                    <tr><th>Fundus</th><td>{df.loc[idx, 'Fundus']}</td></tr>
-                                    <tr><th>U/S</th><td>{df.loc[idx, 'U/S']}</td></tr>
-                                    <tr><th>OCT/FFA</th><td>{df.loc[idx, 'OCT/FFA']}</td></tr>
-                                    <tr><th>Diagnosis</th><td>{df.loc[idx, 'Diagnosis']}</td></tr>
-                                    <tr><th>Treatment</th><td>{df.loc[idx, 'Treatment']}</td></tr>
-                                    <tr><th>Plan</th><td>{df.loc[idx, 'Plan']}</td></tr>
-                                </table>
-
-                                <script>
-                                    window.print();
-                                </script>
-                            </body>
-                            </html>
-                            """
-                            st.components.v1.html(html, height=600, scrolling=True)
-                            st.download_button(
-                                label="🖨️ Download Printable Record",
-                                data=df.loc[[idx]].to_csv(index=False),
-                                file_name=f"patient_{row['Patient_ID']}_record.csv",
-                                mime="text/csv"
-                            )
-
-                            try:
-                                df.to_csv(file_path, index=False)
-                                st.success("✅ Updated locally.")
-                                if push_to_github(file_path, f"Post-visit update for Patient {row['Patient_ID']}"):
-                                    st.success("✅ Pushed to GitHub.")
-                                else:
-                                    st.warning("⚠️ GitHub push failed.")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"❌ Update failed: {e}")
+            if st.session_state.get("print_ready", False):
+                st.download_button(
+                    label="🖨️ Download Printable Record",
+                    data=st.session_state["print_ready_row"].to_csv(index=False),
+                    file_name=f"patient_{st.session_state['print_ready_id']}_record.csv",
+                    mime="text/csv"
+                )
+                st.session_state.print_ready = False
 
 # --- View Data ---
 elif menu == "📊 View Data":
