@@ -86,7 +86,8 @@ if menu == "🆕 New Patient":
                 phone = st.text_input("Phone Number")
             with col2:
                 VA = st.text_input("VA: LA"); VA = st.text_input("VA: RA")
-                iop = st.text_input("IOP")
+                iop = st.text_input("IOP: LA"); iop = st.text_input("IOP: RA")
+               
                 medication = st.text_input("Medication")
 
             if st.form_submit_button("Submit"):
