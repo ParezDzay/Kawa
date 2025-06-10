@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
@@ -60,7 +60,7 @@ df = pd.read_csv(file_path)
 df.columns = df.columns.str.strip().str.replace('\n', ' ').str.replace('"', '')
 
 # Sidebar menu
-menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data"], index=0)
+menu = st.sidebar.radio("📁 Menu", ["🆕 New Patient", "📊 View Data", "⏳ Waiting List"], index=0)
 
 if menu == "🆕 New Patient":
     tab1, tab2 = st.tabs(["📋 Pre-Visit Entry (Secretary)", "🩺 Post-Visit Update (Doctor)"])
@@ -182,3 +182,12 @@ elif menu == "📊 View Data":
             file_name="all_eye_patients.csv",
             mime="text/csv"
         )
+
+# --- Waiting List ---
+elif menu == "⏳ Waiting List":
+    st.title("⏳ Patients Waiting for Doctor Update")
+    waiting_df = df[df["Diagnosis"].isna() | (df["Diagnosis"].astype(str).str.strip() == "")]
+    if waiting_df.empty:
+        st.success("🎉 No patients are currently waiting for post-visit updates.")
+    else:
+        st.dataframe(waiting_df, use_container_width=True)
