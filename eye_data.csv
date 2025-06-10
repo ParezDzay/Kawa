@@ -1,4 +1,4 @@
-Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Diagnosis,Visual_Acuity_RA,Visual_Acuity_LA,IOP_RA,IOP_LA,Medication,Fundus,U/S,OCT/FFA,Treatment,Plan,Visual_Acuity,IOP
-2025-06-10,1,Parez,32,Male,,,,,,,,,,,,,RA () ; LA (),RA () ; LA ()
-2025-06-10,2,Parez dzay,0,Male,,,,,,,,,,,,,RA () ; LA (),RA () ; LA ()
-2025-06-10,0003,,32,Female,,,,,,,,,,,,,RA () ; LA (),RA () ; LA ()
+Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Diagnosis,Visual_Acuity_RA,Visual_Acuity_LA,IOP_RA,IOP_LA,Medication,Fundus,U/S,OCT/FFA,Treatment,Plan,Visual_Acuity,IOP,AC
+2025-06-10,1,Parez,32,Male,,nancjj,,,,,,Ghh,Chb,Cjb,Vjb,Vhb,RA () ; LA (),RA () ; LA (),Fhju
+2025-06-10,2,Parez dzay,0,Male,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),
+2025-06-10,3,,32,Female,,,,,,,,,,,,,RA () ; LA (),RA () ; LA (),
