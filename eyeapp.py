@@ -142,8 +142,8 @@ if menu == "🆕 New Patient":
                     with st.form(f"form_{row['Patient_ID']}", clear_on_submit=True):
                         col1, col2 = st.columns(2)
                         with col1:
-                            ac = st.text_input("AC")
-                            fundus = st.text_input("Fundus")
+                            ac = st.text_area("AC", height=100)
+                            fundus = st.text_area("Fundus", height=100)
                             us = st.text_input("U/S")
                             oct_ffa = st.text_input("OCT/FFA")
                         with col2:
