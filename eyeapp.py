@@ -195,7 +195,7 @@ if menu == "🌟 New Patient":
                                 th {{ background-color: #f2f2f2; text-align: left; }}
                                 .footer {{ margin-top: 30px; font-size: 14px; color: #333; text-align: center; }}
                             </style>
-                            <h2>Patient Record Summary</h2>
+                            <h2>🩺 Patient Record Summary for Dr Kawa Clinic</h2>
                             <h3>Pre-Visit Information</h3>
                             <table>
                                 <tr><th>Date</th><td>{record['Date']}</td></tr>
