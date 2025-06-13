@@ -1,1 +1,1 @@
-Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Diagnosis,Visual_Acuity_RA,Visual_Acuity_LA,IOP_RA,IOP_LA,Medication,Fundus,U/S,OCT/FFA,Treatment,Plan,Visual_Acuity,IOP,AC
+Date,Patient_ID,Full_Name,Age,Gender,Phone_Number,Visual_Acuity_RA,Visual_Acuity_LA,IOP_RA,IOP_LA,Medication,Fundus,U/S,OCT/FFA,Treatment,Plan,Visual_Acuity,IOP,AC
