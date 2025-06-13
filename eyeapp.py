@@ -5,6 +5,22 @@ import base64
 import requests
 from datetime import datetime
 
+# ---------- Password Protection ----------
+PASSWORD = "1122"
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    pwd = st.text_input("Enter password", type="password")
+    login_button = st.button("Login")
+    if login_button:
+        if pwd == PASSWORD:
+            st.session_state.authenticated = True
+        else:
+            st.error("Incorrect password")
+    st.stop()
+
 # GitHub push function
 def push_to_github(file_path, commit_message):
     try:
