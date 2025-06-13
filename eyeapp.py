@@ -6,7 +6,7 @@ import requests
 from datetime import datetime
 
 # ---------- Password Protection ----------
-PASSWORD = "1122"
+PASSWORD = "1977"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
