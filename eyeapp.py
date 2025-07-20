@@ -109,11 +109,11 @@ if menu == "🌟 New Patient":
                 with vacol2:
                     bcva_ra = st.text_input("BCVA: RA")
 
-                iopcol1, iopcol2 = st.columns(2)
-                with iopcol1:
-                    iop_la = st.text_input("IOP: LA")
+                bcva_la, iopcol2 = st.columns(2)
+                with bcva_la:
+                    bcva_la = st.text_input("BCVA: LA")
                 with iopcol2:
-                    iop_ra = st.text_input("IOP: RA")
+                    iop_ra_la= st.text_input("IOP: RA / LA")
 
                 medication = st.text_input("Medication")
 
