@@ -40,7 +40,7 @@ sheet = get_sheet()
 # Push to Google Sheet
 def push_to_sheet(df):
     try:
-        df = df.fillna("").astype(str)
+        df = df.fillna("").astype(str)  # sanitize
         sheet.clear()
         sheet.update([df.columns.values.tolist()] + df.values.tolist())
         return True
@@ -61,6 +61,10 @@ if not os.path.exists(file_path):
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
+
+# Session state
+if "selected_waiting_id" not in st.session_state:
+    st.session_state.selected_waiting_id = None
 
 # Sidebar
 menu = st.sidebar.radio("📁 Menu", ["🌟 New Patient", "📊 View Data"], index=0)
@@ -89,6 +93,7 @@ if menu == "🌟 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
+                va = st.text_input("VA: RA / LA")
                 bcva_ra = st.text_input("BCVA: RA")
                 bcva_la = st.text_input("BCVA: LA")
                 iop = st.text_input("IOP: RA / LA")
@@ -115,13 +120,17 @@ if menu == "🌟 New Patient":
                     "Plan": ""
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
-                df.to_csv(file_path, index=False)
-                st.success("✅ Data saved locally.")
-                if push_to_sheet(df):
-                    st.success("✅ Data saved to Google Sheets.")
-                else:
-                    st.warning("⚠️ Google Sheets save failed.")
-                st.experimental_rerun()
+                try:
+                    df.to_csv(file_path, index=False)
+                    st.success("✅ Data saved locally.")
+                    df = df.fillna("").astype(str)
+                    if push_to_sheet(df):
+                        st.success("✅ Data saved to Google Sheets.")
+                    else:
+                        st.warning("⚠️ Google Sheets save failed.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Save failed: {e}")
 
     # --- Waiting List ---
     with tabs[1]:
@@ -132,6 +141,7 @@ if menu == "🌟 New Patient":
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
         else:
+            updated_ids = []
             for _, row in waiting_df.iterrows():
                 with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
                     selected = df[df["Patient_ID"] == row["Patient_ID"]]
@@ -153,12 +163,16 @@ if menu == "🌟 New Patient":
                         df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
                             ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                         ]
-                        df.to_csv(file_path, index=False)
-                        st.success("✅ Updated locally.")
-                        if push_to_sheet(df):
-                            st.success("✅ Updated Google Sheets.")
-                        else:
-                            st.warning("⚠️ Google Sheets update failed.")
+                        try:
+                            df.to_csv(file_path, index=False)
+                            st.success("✅ Updated locally.")
+                            df = df.fillna("").astype(str)
+                            if push_to_sheet(df):
+                                st.success("✅ Updated Google Sheets.")
+                            else:
+                                st.warning("⚠️ Google Sheets update failed.")
+                            updated_ids.append(row['Patient_ID'])
+                            st.rerun()
 
                         record = df.loc[idx]
                         html = f"""
