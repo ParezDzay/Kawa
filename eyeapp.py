@@ -40,7 +40,7 @@ sheet = get_sheet()
 # Push to Google Sheet
 def push_to_sheet(df):
     try:
-        df = df.fillna("").astype(str)
+        df = df.fillna("").astype(str)  # sanitize
         sheet.clear()
         sheet.update([df.columns.values.tolist()] + df.values.tolist())
         return True
@@ -62,15 +62,15 @@ if not os.path.exists(file_path):
 
 df = pd.read_csv(file_path)
 
-# Session state for selected record print
-if "record_to_print" not in st.session_state:
-    st.session_state.record_to_print = None
+# Session state
+if "selected_waiting_id" not in st.session_state:
+    st.session_state.selected_waiting_id = None
 
 # Sidebar
 menu = st.sidebar.radio("📁 Menu", ["🌟 New Patient", "📊 View Data"], index=0)
 
 if menu == "🌟 New Patient":
-    tabs = st.tabs(["📋 Pre-Visit Entry", "⏳ Waiting List / Doctor Update"])
+    tabs = st.tabs(["📋 Pre-Visit Entry", "⏳ Waiting List / Doctor update"])
 
     # --- Pre-Visit Entry ---
     with tabs[0]:
@@ -120,10 +120,17 @@ if menu == "🌟 New Patient":
                     "Plan": ""
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
-                df.to_csv(file_path, index=False)
-                push_to_sheet(df)
-                st.success("✅ Data saved to Google Sheets.")
-                st.rerun()
+                try:
+                    df.to_csv(file_path, index=False)
+                    st.success("✅ Data saved locally.")
+                    df = df.fillna("").astype(str)
+                    if push_to_sheet(df):
+                        st.success("✅ Data saved to Google Sheets.")
+                    else:
+                        st.warning("⚠️ Google Sheets save failed.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Save failed: {e}")
 
     # --- Waiting List ---
     with tabs[1]:
@@ -134,6 +141,7 @@ if menu == "🌟 New Patient":
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
         else:
+            updated_ids = []
             for _, row in waiting_df.iterrows():
                 with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
                     selected = df[df["Patient_ID"] == row["Patient_ID"]]
@@ -155,67 +163,18 @@ if menu == "🌟 New Patient":
                         df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
                             ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                         ]
-
-                        # Show print page
-                        st.session_state.record_to_print = df.loc[idx].to_dict()
-
-                        break  # exit loop to only print one at a time
-
-# --- Print & Remove ---
-if st.session_state.record_to_print:
-    record = st.session_state.record_to_print
-    html = f"""
-    <style>
-        body {{ font-family: Arial, sans-serif; padding: 20px; }}
-        h2 {{ color: #2c3e50; }}
-        table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-        td, th {{ border: 1px solid #ddd; padding: 8px; }}
-        th {{ background-color: #f2f2f2; text-align: left; }}
-        .footer {{ margin-top: 30px; font-size: 14px; color: #333; text-align: center; }}
-    </style>
-    <h2>🩺 Patient Record Summary for Dr Kawa Clinic</h2>
-    <h3>Pre-Visit Information</h3>
-    <table>
-        <tr><th>Date</th><td>{record['Date']}</td></tr>
-        <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
-        <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
-        <tr><th>Age</th><td>{record['Age']}</td></tr>
-        <tr><th>Gender</th><td>{record['Gender']}</td></tr>
-        <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
-        <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
-        <tr><th>IOP</th><td>{record['IOP']}</td></tr>
-        <tr><th>Medication</th><td>{record['Medication']}</td></tr>
-    </table>
-    <h3>Doctor's Update</h3>
-    <table>
-        <tr><th>AC</th><td>{record['AC']}</td></tr>
-        <tr><th>Fundus</th><td>{record['Fundus']}</td></tr>
-        <tr><th>U/S</th><td>{record['U/S']}</td></tr>
-        <tr><th>OCT/FFA</th><td>{record['OCT/FFA']}</td></tr>
-        <tr><th>Diagnosis</th><td>{record['Diagnosis']}</td></tr>
-        <tr><th>Treatment</th><td>{record['Treatment']}</td></tr>
-        <tr><th>Plan</th><td>{record['Plan']}</td></tr>
-    </table>
-    <div class="footer" style="line-height:1.5; font-weight: bold;">
-    دكتور كاوه خليل _ ڕاوێژکاری نەشتەرگەری تۆڕی چاو<br>
-    استشاري جراحة العيون والشبكية _ دكتورا (بورد) الماني<br>
-    ناونيشان/سهنته رى كلّوبالّ _ العنوان / مركز كلوبال<br>
-    07507712332 - 07715882299
-    </div>
-    <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px; margin-top:20px;">🖨️ Print This Page</button></center>
-    """
-    st.components.v1.html(html, height=1200)
-
-    if st.button("✅ Done - Save & Remove"):
-        pid = record['Patient_ID']
-        df = df[df['Patient_ID'] != pid]
-        df.to_csv(file_path, index=False)
-        push_to_sheet(df)
-        st.session_state.record_to_print = None
-        try:
-            st.rerun()
-        except AttributeError:
-            st.experimental_rerun()
+                        try:
+                            df.to_csv(file_path, index=False)
+                            st.success("✅ Updated locally.")
+                            df = df.fillna("").astype(str)
+                            if push_to_sheet(df):
+                                st.success("✅ Updated Google Sheets.")
+                            else:
+                                st.warning("⚠️ Google Sheets update failed.")
+                            updated_ids.append(row['Patient_ID'])
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Update failed: {e}")
 
 # --- View Data ---
 elif menu == "📊 View Data":
@@ -230,37 +189,3 @@ elif menu == "📊 View Data":
             file_name="all_eye_patients.csv",
             mime="text/csv"
         )
-        if st.session_state.record_to_print:
-    record = st.session_state.record_to_print
-
-    html = f"""
-    <h2>Patient Summary for Printing</h2>
-    <table border="1" cellpadding="5" cellspacing="0">
-        <tr><td><b>Date</b></td><td>{record['Date']}</td></tr>
-        <tr><td><b>Patient ID</b></td><td>{record['Patient_ID']}</td></tr>
-        <tr><td><b>Full Name</b></td><td>{record['Full_Name']}</td></tr>
-        <tr><td><b>Age</b></td><td>{record['Age']}</td></tr>
-        <tr><td><b>Gender</b></td><td>{record['Gender']}</td></tr>
-        <tr><td><b>Phone</b></td><td>{record['Phone_Number']}</td></tr>
-        <tr><td><b>Visual Acuity</b></td><td>{record['Visual_Acuity']}</td></tr>
-        <tr><td><b>IOP</b></td><td>{record['IOP']}</td></tr>
-        <tr><td><b>Medication</b></td><td>{record['Medication']}</td></tr>
-        <tr><td><b>AC</b></td><td>{record['AC']}</td></tr>
-        <tr><td><b>Fundus</b></td><td>{record['Fundus']}</td></tr>
-        <tr><td><b>U/S</b></td><td>{record['U/S']}</td></tr>
-        <tr><td><b>OCT/FFA</b></td><td>{record['OCT/FFA']}</td></tr>
-        <tr><td><b>Diagnosis</b></td><td>{record['Diagnosis']}</td></tr>
-        <tr><td><b>Treatment</b></td><td>{record['Treatment']}</td></tr>
-        <tr><td><b>Plan</b></td><td>{record['Plan']}</td></tr>
-    </table>
-    <center><button onclick="window.print()">🖨️ Print This Page</button></center>
-    """
-    st.components.v1.html(html, height=800)
-
-    if st.button("✅ Done - Remove from Waiting List"):
-        pid = record['Patient_ID']
-        df = df[df["Patient_ID"] != pid]
-        df.to_csv(file_path, index=False)
-        push_to_sheet(df)
-        st.session_state.record_to_print = None
-        st.rerun()
