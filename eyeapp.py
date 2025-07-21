@@ -8,27 +8,31 @@ import tempfile
 def generate_patient_pdf(record):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    
-    pdf.cell(0, 10, "Dr Kawa Khalil _Clinic Patient Record Summary", ln=True, align="C")
+
+    # Add Unicode font (make sure path is correct)
+    pdf.add_font('DejaVu', '', 'fonts/DejaVuSans.ttf', uni=True)
+    pdf.set_font("DejaVu", size=12)
+
+    pdf.cell(0, 10, "Clinic Patient Record Summary", ln=True, align="C")
     pdf.ln(10)
-    
+
+    # Patient data
     for key, value in record.items():
         pdf.cell(0, 8, f"{key}: {value}", ln=True)
+
     pdf.ln(20)
-    
-    # Footer text (multiline)
+
+    # Footer text in Arabic/Kurdish
     footer_lines = [
         "دكتور كاوه خليل _ ڕاوێژکاری نەشتەرگەری تۆڕی چاو",
         "استشاري جراحة العيون والشبكية _ دكتورا (بورد) الماني",
         "ناونيشان/سەنتەرى گڵوباڵ _ العنوان / مركز كلوبال",
         "07507712332 - 07715882299"
     ]
-    pdf.set_font("Arial", size=10)
+    pdf.set_font("DejaVu", size=10)
     for line in footer_lines:
         pdf.cell(0, 7, line, ln=True, align="C")
-    
-    # Save to temp file
+
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     pdf.output(temp_file.name)
     return temp_file.name
