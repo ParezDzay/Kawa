@@ -21,41 +21,32 @@ if not st.session_state.authenticated:
             st.error("Incorrect password")
     st.stop()
 
-# GitHub push function
-def push_to_github(file_path, commit_message):
+
+# ---------- Google Sheets Setup ----------
+SHEET_ID = "YOUR_SHEET_ID"  # <-- put your actual Sheet ID here!
+
+@st.cache_resource
+def get_sheet():
+    scope = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(
+        st.secrets["gcp_service_account"], scope
+    )
+    client = gspread.authorize(creds)
+    return client.open_by_key(SHEET_ID).sheet1
+
+sheet = get_sheet()
+
+# Push to Google Sheet
+def push_to_sheet(df):
     try:
-        token = st.secrets["github"]["token"]
-        username = st.secrets["github"]["username"]
-        repo = st.secrets["github"]["repo"]
-        branch = st.secrets["github"]["branch"]
-
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        encoded_content = base64.b64encode(content.encode()).decode()
-        filename = os.path.basename(file_path)
-        url = f"https://api.github.com/repos/{username}/{repo}/contents/{filename}"
-
-        headers = {
-            "Authorization": f"token {token}",
-            "Accept": "application/vnd.github+json"
-        }
-
-        response = requests.get(url, headers=headers)
-        sha = response.json().get("sha") if response.status_code == 200 else None
-
-        payload = {
-            "message": commit_message,
-            "content": encoded_content,
-            "branch": branch
-        }
-        if sha:
-            payload["sha"] = sha
-
-        res = requests.put(url, headers=headers, json=payload)
-        return res.status_code in [200, 201]
+        sheet.clear()  # Clear old data
+        sheet.update([df.columns.values.tolist()] + df.values.tolist())
+        return True
     except Exception as e:
-        st.error(f"❌ GitHub push failed: {e}")
+        st.error(f"❌ Google Sheets push failed: {e}")
         return False
 
 # Page config
