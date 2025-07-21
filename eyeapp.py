@@ -230,3 +230,37 @@ elif menu == "📊 View Data":
             file_name="all_eye_patients.csv",
             mime="text/csv"
         )
+        if st.session_state.record_to_print:
+    record = st.session_state.record_to_print
+
+    html = f"""
+    <h2>Patient Summary for Printing</h2>
+    <table border="1" cellpadding="5" cellspacing="0">
+        <tr><td><b>Date</b></td><td>{record['Date']}</td></tr>
+        <tr><td><b>Patient ID</b></td><td>{record['Patient_ID']}</td></tr>
+        <tr><td><b>Full Name</b></td><td>{record['Full_Name']}</td></tr>
+        <tr><td><b>Age</b></td><td>{record['Age']}</td></tr>
+        <tr><td><b>Gender</b></td><td>{record['Gender']}</td></tr>
+        <tr><td><b>Phone</b></td><td>{record['Phone_Number']}</td></tr>
+        <tr><td><b>Visual Acuity</b></td><td>{record['Visual_Acuity']}</td></tr>
+        <tr><td><b>IOP</b></td><td>{record['IOP']}</td></tr>
+        <tr><td><b>Medication</b></td><td>{record['Medication']}</td></tr>
+        <tr><td><b>AC</b></td><td>{record['AC']}</td></tr>
+        <tr><td><b>Fundus</b></td><td>{record['Fundus']}</td></tr>
+        <tr><td><b>U/S</b></td><td>{record['U/S']}</td></tr>
+        <tr><td><b>OCT/FFA</b></td><td>{record['OCT/FFA']}</td></tr>
+        <tr><td><b>Diagnosis</b></td><td>{record['Diagnosis']}</td></tr>
+        <tr><td><b>Treatment</b></td><td>{record['Treatment']}</td></tr>
+        <tr><td><b>Plan</b></td><td>{record['Plan']}</td></tr>
+    </table>
+    <center><button onclick="window.print()">🖨️ Print This Page</button></center>
+    """
+    st.components.v1.html(html, height=800)
+
+    if st.button("✅ Done - Remove from Waiting List"):
+        pid = record['Patient_ID']
+        df = df[df["Patient_ID"] != pid]
+        df.to_csv(file_path, index=False)
+        push_to_sheet(df)
+        st.session_state.record_to_print = None
+        st.rerun()
