@@ -10,7 +10,7 @@ def generate_patient_pdf(record):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
     
-    pdf.cell(0, 10, "Dr Kawa Khalil_ Clinic Patient Record Summary", ln=True, align="C")
+    pdf.cell(0, 10, "🩺 Dr Kawa Khalil_ Clinic Patient Record Summary", ln=True, align="C")
     pdf.ln(10)
     
     for key, value in record.items():
