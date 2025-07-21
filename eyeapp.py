@@ -2,6 +2,23 @@ import streamlit as st
 import pandas as pd
 import os
 import gspread
+from fpdf import FPDF
+import tempfile
+
+def generate_patient_pdf(record):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    
+    pdf.cell(0, 10, "Clinic Patient Record Summary", ln=True, align="C")
+    pdf.ln(10)
+    
+    for key, value in record.items():
+        pdf.cell(0, 8, f"{key}: {value}", ln=True)
+    
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    pdf.output(temp_file.name)
+    return temp_file.name
 from google.oauth2.service_account import Credentials
 
 # ---------- Password Protection ----------
@@ -171,7 +188,16 @@ if menu == "🌟 New Patient":
                                 st.success("✅ Updated Google Sheets.")
                             else:
                                 st.warning("⚠️ Google Sheets update failed.")
-                            st.info(f"🖨️ Printing record for Patient ID: {row['Patient_ID']}")
+                            patient_record = df.loc[idx].to_dict()
+                            pdf_path = generate_patient_pdf(patient_record)
+                            with open(pdf_path, "rb") as f:
+                                pdf_bytes = f.read()
+                                st.download_button(
+                                    label=f"🖨️ Download PDF Summary for Patient {row['Patient_ID']}",
+                                    data=pdf_bytes,
+                                    file_name=f"Patient_{row['Patient_ID']}_summary.pdf",
+                                    mime="application/pdf",
+                                )
                             updated_ids.append(row['Patient_ID'])
                             st.rerun()
                         except Exception as e:
