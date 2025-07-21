@@ -171,6 +171,7 @@ if menu == "🌟 New Patient":
                                 st.success("✅ Updated Google Sheets.")
                             else:
                                 st.warning("⚠️ Google Sheets update failed.")
+                            st.info(f"🖨️ Printing record for Patient ID: {row['Patient_ID']}")
                             updated_ids.append(row['Patient_ID'])
                             st.rerun()
                         except Exception as e:
