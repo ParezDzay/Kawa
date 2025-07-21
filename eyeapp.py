@@ -109,7 +109,6 @@ if menu == "🌟 New Patient":
                 "Treatment": "",
                 "Plan": ""
             }])
-            global df
             df = pd.concat([df, new_entry], ignore_index=True)
             push_to_sheet(df)
             st.success("✅ Data saved to Google Sheets.")
