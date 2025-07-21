@@ -175,7 +175,7 @@ if menu == "🌟 New Patient":
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
-                            
+
 # --- View Data ---
 elif menu == "📊 View Data":
     st.title("📊 Patient Records")
