@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 
 # ---------- Password Protection ----------
 PASSWORD = "1977"
@@ -21,7 +21,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ---------- Google Sheets Setup ----------
-SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"  # Your actual Sheet ID
+SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
 
 @st.cache_resource
 def get_sheet():
@@ -29,8 +29,8 @@ def get_sheet():
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(
-        st.secrets["gcp_service_account"], scope
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=scope
     )
     client = gspread.authorize(creds)
     return client.open_by_key(SHEET_ID).sheet1
@@ -40,24 +40,24 @@ sheet = get_sheet()
 # Push to Google Sheet
 def push_to_sheet(df):
     try:
-        sheet.clear()  # Clear old data
+        df = df.fillna("").astype(str)  # sanitize
+        sheet.clear()
         sheet.update([df.columns.values.tolist()] + df.values.tolist())
         return True
     except Exception as e:
         st.error(f"❌ Google Sheets push failed: {e}")
         return False
 
-
 # Page config
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 file_path = "eye_data.csv"
 
-# Initialize CSV
+# Initialize CSV if missing
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Diagnosis", "Visual_Acuity", "IOP", "Medication",
-        "AC", "Fundus", "U/S", "OCT/FFA", "Treatment", "Plan"
+        "Visual_Acuity", "IOP", "Medication", "AC", "Fundus", "U/S",
+        "OCT/FFA", "Diagnosis", "Treatment", "Plan"
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
@@ -65,8 +65,6 @@ df = pd.read_csv(file_path)
 # Session state
 if "selected_waiting_id" not in st.session_state:
     st.session_state.selected_waiting_id = None
-if "print_ready" not in st.session_state:
-    st.session_state.print_ready = False
 
 # Sidebar
 menu = st.sidebar.radio("📁 Menu", ["🌟 New Patient", "📊 View Data"], index=0)
@@ -83,6 +81,7 @@ if menu == "🌟 New Patient":
             next_id = f"{last_id + 1:04d}"
         except:
             next_id = "0001"
+
         st.markdown(f"**Generated Patient ID:** `{next_id}`")
 
         with st.form("pre_visit_form", clear_on_submit=True):
@@ -94,33 +93,21 @@ if menu == "🌟 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                vacol1, vacol2 = st.columns(2)
-                with vacol1:
-                    va_ra = st.text_input("VA: RA")
-                    va_la = st.text_input("VA: LA")
-                with vacol2:
-                    bcva_ra = st.text_input("BCVA: RA")
-
-                bcva_la, iopcol2 = st.columns(2)
-                with bcva_la:
-                    bcva_la = st.text_input("BCVA: LA")
-                with iopcol2:
-                    iop_ra = st.text_input("IOP: RA")
-                    iop_la = st.text_input("IOP: LA")
-
+                va = st.text_input("VA: RA / LA")
+                bcva_ra = st.text_input("BCVA: RA")
+                bcva_la = st.text_input("BCVA: LA")
+                iop = st.text_input("IOP: RA / LA")
                 medication = st.text_input("Medication")
 
             if st.form_submit_button("Submit"):
-                visual_acuity = f"RA ({va_ra}) ; LA ({va_la})"
-                iop = f"RA ({iop_ra}) ; LA ({iop_la})"
+                visual_acuity = f"RA ({bcva_ra}) ; LA ({bcva_la})"
                 new_entry = pd.DataFrame([{
-                    "Date": date,
+                    "Date": str(date),
                     "Patient_ID": next_id,
                     "Full_Name": full_name,
                     "Age": age,
                     "Gender": gender,
                     "Phone_Number": phone,
-                    "Diagnosis": "",
                     "Visual_Acuity": visual_acuity,
                     "IOP": iop,
                     "Medication": medication,
@@ -128,6 +115,7 @@ if menu == "🌟 New Patient":
                     "Fundus": "",
                     "U/S": "",
                     "OCT/FFA": "",
+                    "Diagnosis": "",
                     "Treatment": "",
                     "Plan": ""
                 }])
@@ -135,7 +123,7 @@ if menu == "🌟 New Patient":
                 try:
                     df.to_csv(file_path, index=False)
                     st.success("✅ Data saved locally.")
-                    df["Date"] = df["Date"].astype(str)  # Fix date serialization
+                    df = df.fillna("").astype(str)
                     if push_to_sheet(df):
                         st.success("✅ Data saved to Google Sheets.")
                     else:
@@ -144,17 +132,11 @@ if menu == "🌟 New Patient":
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
 
-    # --- Waiting List with Inline Update ---
+    # --- Waiting List ---
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
-        # Ensure columns exist to avoid KeyError
-        for col in ["Diagnosis", "Treatment", "Plan"]:
-            if col not in df.columns:
-                df[col] = ""
-
-        filtered_df = df.copy()
-        filtered_df[["Diagnosis", "Treatment", "Plan"]] = filtered_df[["Diagnosis", "Treatment", "Plan"]].fillna("").astype(str)
-        waiting_df = filtered_df[(filtered_df["Diagnosis"] == "") & (filtered_df["Treatment"] == "") & (filtered_df["Plan"] == "")]
+        df = df.fillna("")
+        waiting_df = df[(df["Diagnosis"] == "") & (df["Treatment"] == "") & (df["Plan"] == "")]
 
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
@@ -174,7 +156,6 @@ if menu == "🌟 New Patient":
                             diagnosis = st.text_input("Diagnosis", value=selected["Diagnosis"].values[0])
                             treatment = st.text_input("Treatment")
                             plan = st.text_input("Plan")
-
                         submitted = st.form_submit_button("Update Record")
 
                     if submitted:
@@ -185,66 +166,17 @@ if menu == "🌟 New Patient":
                         try:
                             df.to_csv(file_path, index=False)
                             st.success("✅ Updated locally.")
-                            df["Date"] = df["Date"].astype(str)  # Fix date serialization
+                            df = df.fillna("").astype(str)
                             if push_to_sheet(df):
                                 st.success("✅ Updated Google Sheets.")
                             else:
                                 st.warning("⚠️ Google Sheets update failed.")
-
-                            record = df.loc[idx]
-                            html = f"""
-                            <style>
-                                body {{ font-family: Arial, sans-serif; padding: 20px; }}
-                                h2 {{ color: #2c3e50; }}
-                                table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-                                td, th {{ border: 1px solid #ddd; padding: 8px; }}
-                                th {{ background-color: #f2f2f2; text-align: left; }}
-                                .footer {{ margin-top: 30px; font-size: 14px; color: #333; text-align: center; }}
-                            </style>
-                            <h2>🩺 Patient Record Summary for Dr Kawa Clinic</h2>
-                            <h3>Pre-Visit Information</h3>
-                            <table>
-                                <tr><th>Date</th><td>{record['Date']}</td></tr>
-                                <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
-                                <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
-                                <tr><th>Age</th><td>{record['Age']}</td></tr>
-                                <tr><th>Gender</th><td>{record['Gender']}</td></tr>
-                                <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
-                                <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
-                                <tr><th>IOP</th><td>{record['IOP']}</td></tr>
-                                <tr><th>Medication</th><td>{record['Medication']}</td></tr>
-                            </table>
-                            <h3>Doctor's Update</h3>
-                            <table>
-                                <tr><th>AC</th><td>{record.get('AC', '')}</td></tr>
-                                <tr><th>Fundus</th><td>{record.get('Fundus', '')}</td></tr>
-                                <tr><th>U/S</th><td>{record.get('U/S', '')}</td></tr>
-                                <tr><th>OCT/FFA</th><td>{record.get('OCT/FFA', '')}</td></tr>
-                                <tr><th>Diagnosis</th><td>{record.get('Diagnosis', '')}</td></tr>
-                                <tr><th>Treatment</th><td>{record.get('Treatment', '')}</td></tr>
-                                <tr><th>Plan</th><td>{record.get('Plan', '')}</td></tr>
-                            </table>
-                            <div class="footer" style="line-height:1.5; font-weight: bold;">
-    دكتور كاوه خليل _ ڕاوێژکاری نەشتەرگەری تۆڕی چاو<br>
-    استشاري جراحة العيون والشبكية _ دكتورا (بورد) الماني<br>
-    ناونيشان/سهنته رى كلّوبالّ _ العنوان / مركز كلوبال<br>
-    07507712332 - 07715882299
-</div>
-
-                            <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px; margin-top:20px;">🖨️ Print This Page</button></center>
-                            """
-                            st.components.v1.html(html, height=1200)
-
                             updated_ids.append(row['Patient_ID'])
-
+                            st.rerun()
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
 
-            if updated_ids:
-                # Remove updated patients from waiting list by filtering df
-                df = df[~df['Patient_ID'].isin(updated_ids)]
-                df.to_csv(file_path, index=False)
-
+# --- View Data ---
 elif menu == "📊 View Data":
     st.title("📊 Patient Records")
     tab1, tab2 = st.tabs(["📋 All Records", "🗕️ Download CSV"])
