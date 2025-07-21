@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -21,7 +20,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ---------- Google Sheets Setup ----------
-SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"  # Your actual Sheet ID
+SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
 
 @st.cache_resource
 def get_sheet():
@@ -37,10 +36,13 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# Push to Google Sheet
+def load_data_from_sheet():
+    data = sheet.get_all_records()
+    return pd.DataFrame(data)
+
 def push_to_sheet(df):
     try:
-        sheet.clear()  # Clear old data
+        sheet.clear()
         sheet.update([df.columns.values.tolist()] + df.values.tolist())
         return True
     except Exception as e:
@@ -49,17 +51,9 @@ def push_to_sheet(df):
 
 # Page config
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
-file_path = "eye_data.csv"
 
-# Initialize CSV with all columns needed
-if not os.path.exists(file_path):
-    pd.DataFrame(columns=[
-        "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Diagnosis", "Visual_Acuity", "IOP", "Medication",
-        "AC", "Fundus", "U/S", "OCT/FFA", "Treatment", "Plan"
-    ]).to_csv(file_path, index=False)
-
-df = pd.read_csv(file_path)
+# Load data directly from Google Sheets (no CSV)
+df = load_data_from_sheet()
 
 # Session state
 if "selected_waiting_id" not in st.session_state:
@@ -78,7 +72,7 @@ if menu == "🌟 New Patient":
         st.title("📋 Pre-Visit Entry")
 
         try:
-            last_id = df["Patient_ID"].dropna().astype(str).str.extract(r'(\d+)')[0].astype(int).max()
+            last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\\d+)')[0].astype(int).max()
             next_id = f"{last_id + 1:04d}"
         except:
             next_id = "0001"
@@ -93,17 +87,25 @@ if menu == "🌟 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                va_ra_la = st.text_input("VA: RA / LA")
-                bcva_ra = st.text_input("BCVA: RA")
-                bcva_la = st.text_input("BCVA: LA")
-                iop_ra_la = st.text_input("IOP: RA / LA")
+                vacol1, vacol2 = st.columns(2)
+                with vacol1:
+                    va_ra_la = st.text_input("VA: RA / LA")
+                with vacol2:
+                    bcva_ra = st.text_input("BCVA: RA")
+
+                bcva_la, iopcol2 = st.columns(2)
+                with bcva_la:
+                    bcva_la = st.text_input("BCVA: LA")
+                with iopcol2:
+                    iop_ra_la = st.text_input("IOP: RA / LA")
+
                 medication = st.text_input("Medication")
 
             if st.form_submit_button("Submit"):
-                visual_acuity = va_ra_la  # Directly use combined input
-                iop = iop_ra_la           # Directly use combined input
+                visual_acuity = f"RA ({va_ra_la}) ; LA ({bcva_ra})"
+                iop = f"RA ({iop_ra_la}) ; LA ({bcva_la})"
                 new_entry = pd.DataFrame([{
-                    "Date": date,
+                    "Date": str(date),
                     "Patient_ID": next_id,
                     "Full_Name": full_name,
                     "Age": age,
@@ -112,22 +114,15 @@ if menu == "🌟 New Patient":
                     "Diagnosis": "",
                     "Visual_Acuity": visual_acuity,
                     "IOP": iop,
-                    "Medication": medication,
-                    "AC": "",
-                    "Fundus": "",
-                    "U/S": "",
-                    "OCT/FFA": "",
-                    "Treatment": "",
-                    "Plan": ""
+                    "Medication": medication
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
                 try:
-                    df.to_csv(file_path, index=False)
-                    st.success("✅ Data saved locally.")
+                    # Push directly to Google Sheets here (instead of CSV)
                     if push_to_sheet(df):
-                        st.success("✅ Pushed to Google Sheets.")
+                        st.success("✅ Data saved to Google Sheets.")
                     else:
-                        st.warning("⚠️ Google Sheets push failed.")
+                        st.warning("⚠️ Failed to save to Google Sheets.")
                     st.experimental_rerun()
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
@@ -136,6 +131,11 @@ if menu == "🌟 New Patient":
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
         filtered_df = df.copy()
+        # Ensure these columns exist in sheet, else add them dynamically
+        for col in ["Diagnosis", "Treatment", "Plan", "AC", "Fundus", "U/S", "OCT/FFA"]:
+            if col not in filtered_df.columns:
+                filtered_df[col] = ""
+
         filtered_df[["Diagnosis", "Treatment", "Plan"]] = filtered_df[["Diagnosis", "Treatment", "Plan"]].fillna("").astype(str)
         waiting_df = filtered_df[(filtered_df["Diagnosis"] == "") & (filtered_df["Treatment"] == "") & (filtered_df["Plan"] == "")]
 
@@ -166,12 +166,10 @@ if menu == "🌟 New Patient":
                             ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                         ]
                         try:
-                            df.to_csv(file_path, index=False)
-                            st.success("✅ Updated locally.")
                             if push_to_sheet(df):
-                                st.success("✅ Pushed to Google Sheets.")
+                                st.success("✅ Updated Google Sheets.")
                             else:
-                                st.warning("⚠️ Google Sheets push failed.")
+                                st.warning("⚠️ Failed to update Google Sheets.")
 
                             record = df.loc[idx]
                             html = f"""
@@ -221,10 +219,6 @@ if menu == "🌟 New Patient":
 
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
-
-            if updated_ids:
-                df = df[~df['Patient_ID'].isin(updated_ids)]
-                df.to_csv(file_path, index=False)
 
 # --- View Data ---
 elif menu == "📊 View Data":
