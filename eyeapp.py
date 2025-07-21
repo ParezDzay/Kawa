@@ -1,9 +1,8 @@
-import streamlit as st  
+import streamlit as st
 import pandas as pd
 import os
-import base64
-import requests
-from datetime import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # ---------- Password Protection ----------
 PASSWORD = "1977"
