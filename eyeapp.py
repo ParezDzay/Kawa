@@ -193,7 +193,7 @@ elif menu == "📋 Doctor Update":
                     # ---------- SAVE AFTER PRINT ----------
                     push_to_sheet(df)
                     st.success("✅ Saved to Google Sheets after Doctor Update.")
-                    st.experimental_rerun()
+                    st.rerun()
 
 # ---------- VIEW DATA ----------
 elif menu == "📊 View Data":
