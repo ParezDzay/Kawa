@@ -173,6 +173,51 @@ if menu == "🌟 New Patient":
                                 st.warning("⚠️ Google Sheets update failed.")
                             updated_ids.append(row['Patient_ID'])
                             st.rerun()
+                            record = df.loc[idx]
+                            html = f"""
+                            <style>
+                                body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                                h2 {{ color: #2c3e50; }}
+                                table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+                                td, th {{ border: 1px solid #ddd; padding: 8px; }}
+                                th {{ background-color: #f2f2f2; text-align: left; }}
+                                .footer {{ margin-top: 30px; font-size: 14px; color: #333; text-align: center; }}
+                            </style>
+                            <h2>🩺 Patient Record Summary for Dr Kawa Clinic</h2>
+                            <h3>Pre-Visit Information</h3>
+                            <table>
+                                <tr><th>Date</th><td>{record['Date']}</td></tr>
+                                <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
+                                <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
+                                <tr><th>Age</th><td>{record['Age']}</td></tr>
+                                <tr><th>Gender</th><td>{record['Gender']}</td></tr>
+                                <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
+                                <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
+                                <tr><th>IOP</th><td>{record['IOP']}</td></tr>
+                                <tr><th>Medication</th><td>{record['Medication']}</td></tr>
+                            </table>
+                            <h3>Doctor's Update</h3>
+                            <table>
+                                <tr><th>AC</th><td>{record.get('AC', '')}</td></tr>
+                                <tr><th>Fundus</th><td>{record.get('Fundus', '')}</td></tr>
+                                <tr><th>U/S</th><td>{record.get('U/S', '')}</td></tr>
+                                <tr><th>OCT/FFA</th><td>{record.get('OCT/FFA', '')}</td></tr>
+                                <tr><th>Diagnosis</th><td>{record.get('Diagnosis', '')}</td></tr>
+                                <tr><th>Treatment</th><td>{record.get('Treatment', '')}</td></tr>
+                                <tr><th>Plan</th><td>{record.get('Plan', '')}</td></tr>
+                            </table>
+                            <div class="footer" style="line-height:1.5; font-weight: bold;">
+    دكتور كاوه خليل _ ڕاوێژکاری نەشتەرگەری تۆڕی چاو<br>
+    استشاري جراحة العيون والشبكية _ دكتورا (بورد) الماني<br>
+    ناونيشان/سهنته رى كلّوبالّ _ العنوان / مركز كلوبال<br>
+    07507712332 - 07715882299
+</div>
+
+                            <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px; margin-top:20px;">🖨️ Print This Page</button></center>
+                            """
+                            st.components.v1.html(html, height=1200)
+
+                            updated_ids.append(row['Patient_ID'])
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
 
