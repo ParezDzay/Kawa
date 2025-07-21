@@ -113,7 +113,7 @@ if menu == "🌟 New Patient":
             df = pd.concat([df, new_entry], ignore_index=True)
             push_to_sheet(df)
             st.success("✅ Data saved to Google Sheets.")
-            st.experimental_rerun()
+            st.rerun()
 
 # ---------- DOCTOR UPDATE ----------
 elif menu == "📋 Doctor Update":
