@@ -40,7 +40,7 @@ sheet = get_sheet()
 # Push to Google Sheet
 def push_to_sheet(df):
     try:
-        df = df.fillna("").astype(str)  # sanitize
+        df = df.fillna("").astype(str)
         sheet.clear()
         sheet.update([df.columns.values.tolist()] + df.values.tolist())
         return True
@@ -61,10 +61,6 @@ if not os.path.exists(file_path):
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
-
-# Session state
-if "selected_waiting_id" not in st.session_state:
-    st.session_state.selected_waiting_id = None
 
 # Sidebar
 menu = st.sidebar.radio("📁 Menu", ["🌟 New Patient", "📊 View Data"], index=0)
@@ -93,7 +89,6 @@ if menu == "🌟 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                va = st.text_input("VA: RA / LA")
                 bcva_ra = st.text_input("BCVA: RA")
                 bcva_la = st.text_input("BCVA: LA")
                 iop = st.text_input("IOP: RA / LA")
@@ -120,17 +115,13 @@ if menu == "🌟 New Patient":
                     "Plan": ""
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
-                try:
-                    df.to_csv(file_path, index=False)
-                    st.success("✅ Data saved locally.")
-                    df = df.fillna("").astype(str)
-                    if push_to_sheet(df):
-                        st.success("✅ Data saved to Google Sheets.")
-                    else:
-                        st.warning("⚠️ Google Sheets save failed.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Save failed: {e}")
+                df.to_csv(file_path, index=False)
+                st.success("✅ Data saved locally.")
+                if push_to_sheet(df):
+                    st.success("✅ Data saved to Google Sheets.")
+                else:
+                    st.warning("⚠️ Google Sheets save failed.")
+                st.experimental_rerun()
 
     # --- Waiting List ---
     with tabs[1]:
@@ -141,7 +132,6 @@ if menu == "🌟 New Patient":
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
         else:
-            updated_ids = []
             for _, row in waiting_df.iterrows():
                 with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
                     selected = df[df["Patient_ID"] == row["Patient_ID"]]
@@ -163,73 +153,61 @@ if menu == "🌟 New Patient":
                         df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
                             ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                         ]
-                        try:
+                        df.to_csv(file_path, index=False)
+                        st.success("✅ Updated locally.")
+                        if push_to_sheet(df):
+                            st.success("✅ Updated Google Sheets.")
+                        else:
+                            st.warning("⚠️ Google Sheets update failed.")
+
+                        record = df.loc[idx]
+                        html = f"""
+                        <style>
+                            body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                            h2 {{ color: #2c3e50; }}
+                            table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+                            td, th {{ border: 1px solid #ddd; padding: 8px; }}
+                            th {{ background-color: #f2f2f2; text-align: left; }}
+                            .footer {{ margin-top: 30px; font-size: 14px; color: #333; text-align: center; }}
+                        </style>
+                        <h2>🩺 Patient Record Summary for Dr Kawa Clinic</h2>
+                        <h3>Pre-Visit Information</h3>
+                        <table>
+                            <tr><th>Date</th><td>{record['Date']}</td></tr>
+                            <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
+                            <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
+                            <tr><th>Age</th><td>{record['Age']}</td></tr>
+                            <tr><th>Gender</th><td>{record['Gender']}</td></tr>
+                            <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
+                            <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
+                            <tr><th>IOP</th><td>{record['IOP']}</td></tr>
+                            <tr><th>Medication</th><td>{record['Medication']}</td></tr>
+                        </table>
+                        <h3>Doctor's Update</h3>
+                        <table>
+                            <tr><th>AC</th><td>{record.get('AC', '')}</td></tr>
+                            <tr><th>Fundus</th><td>{record.get('Fundus', '')}</td></tr>
+                            <tr><th>U/S</th><td>{record.get('U/S', '')}</td></tr>
+                            <tr><th>OCT/FFA</th><td>{record.get('OCT/FFA', '')}</td></tr>
+                            <tr><th>Diagnosis</th><td>{record.get('Diagnosis', '')}</td></tr>
+                            <tr><th>Treatment</th><td>{record.get('Treatment', '')}</td></tr>
+                            <tr><th>Plan</th><td>{record.get('Plan', '')}</td></tr>
+                        </table>
+                        <div class="footer" style="line-height:1.5; font-weight: bold;">
+                        دكتور كاوه خليل _ ڕاوێژکاری نەشتەرگەری تۆڕی چاو<br>
+                        استشاري جراحة العيون والشبكية _ دكتورا (بورد) الماني<br>
+                        ناونيشان/سهنته رى كلّوبالّ _ العنوان / مركز كلوبال<br>
+                        07507712332 - 07715882299
+                        </div>
+                        <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px; margin-top:20px;">🖨️ Print This Page</button></center>
+                        """
+                        st.components.v1.html(html, height=1200)
+
+                        if st.button(f"✅ Done - Remove Patient {row['Patient_ID']}"):
+                            df = df[df["Patient_ID"] != row["Patient_ID"]]
                             df.to_csv(file_path, index=False)
-                            st.success("✅ Updated locally.")
-                            df = df.fillna("").astype(str)
-                            if push_to_sheet(df):
-                                st.success("✅ Updated Google Sheets.")
-                            else:
-                                st.warning("⚠️ Google Sheets update failed.")
-                            updated_ids.append(row['Patient_ID'])
-                            st.rerun()
-                            updated_ids.append(row['Patient_ID'])
-                        except Exception as e:
-                            st.error(f"❌ Update failed: {e}")
-                            record = df.loc[idx]
-
-html = f"""
-<style>
-    body {{ font-family: Arial, sans-serif; padding: 20px; }}
-    h2 {{ color: #2c3e50; }}
-    table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-    td, th {{ border: 1px solid #ddd; padding: 8px; }}
-    th {{ background-color: #f2f2f2; text-align: left; }}
-    .footer {{ margin-top: 30px; font-size: 14px; color: #333; text-align: center; }}
-</style>
-<h2>🩺 Patient Record Summary for Dr Kawa Clinic</h2>
-<h3>Pre-Visit Information</h3>
-<table>
-    <tr><th>Date</th><td>{record['Date']}</td></tr>
-    <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
-    <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
-    <tr><th>Age</th><td>{record['Age']}</td></tr>
-    <tr><th>Gender</th><td>{record['Gender']}</td></tr>
-    <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
-    <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
-    <tr><th>IOP</th><td>{record['IOP']}</td></tr>
-    <tr><th>Medication</th><td>{record['Medication']}</td></tr>
-</table>
-<h3>Doctor's Update</h3>
-<table>
-    <tr><th>AC</th><td>{record.get('AC', '')}</td></tr>
-    <tr><th>Fundus</th><td>{record.get('Fundus', '')}</td></tr>
-    <tr><th>U/S</th><td>{record.get('U/S', '')}</td></tr>
-    <tr><th>OCT/FFA</th><td>{record.get('OCT/FFA', '')}</td></tr>
-    <tr><th>Diagnosis</th><td>{record.get('Diagnosis', '')}</td></tr>
-    <tr><th>Treatment</th><td>{record.get('Treatment', '')}</td></tr>
-    <tr><th>Plan</th><td>{record.get('Plan', '')}</td></tr>
-</table>
-<div class="footer" style="line-height:1.5; font-weight: bold;">
-دكتور كاوه خليل _ ڕاوێژکاری نەشتەرگەری تۆڕی چاو<br>
-استشاري جراحة العيون والشبكية _ دكتورا (بورد) الماني<br>
-ناونيشان/سهنته رى كلّوبالّ _ العنوان / مركز كلوبال<br>
-07507712332 - 07715882299
-</div>
-
-<center><button onclick="window.print()" style="padding:10px 20px; font-size:16px; margin-top:20px;">🖨️ Print This Page</button></center>
-"""
-
-st.components.v1.html(html, height=1200)
-
-# ✅ Add a "Mark as Done" button AFTER printing
-if st.button(f"✅ Done - Remove Patient {row['Patient_ID']} from Waiting List"):
-    updated_ids.append(row['Patient_ID'])
-    # Remove from df and push to file + sheet
-    df = df[~df['Patient_ID'].isin(updated_ids)]
-    df.to_csv(file_path, index=False)
-    push_to_sheet(df)
-    st.experimental_rerun()
+                            push_to_sheet(df)
+                            st.experimental_rerun()
 
 # --- View Data ---
 elif menu == "📊 View Data":
