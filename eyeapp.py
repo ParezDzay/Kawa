@@ -198,8 +198,6 @@ if menu == "🌟 New Patient":
                                     file_name=f"Patient_{row['Patient_ID']}_summary.pdf",
                                     mime="application/pdf",
                                 )
-                            updated_ids.append(row['Patient_ID'])
-                            st.rerun()
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
 
