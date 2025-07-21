@@ -36,8 +36,8 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# ---------- GET DATAFRAME ----------
-@st.cache_data(ttl=60)
+# ---------- LOAD DATAFRAME FROM SHEETS ----------
+@st.cache_data(ttl=30)
 def load_df():
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
@@ -53,13 +53,13 @@ def load_df():
 
 df = load_df()
 
-# ---------- PUSH TO SHEET ----------
+# ---------- PUSH DATAFRAME TO SHEETS ----------
 def push_to_sheet(df):
     df = df.fillna("").astype(str)
     sheet.clear()
     sheet.update([df.columns.values.tolist()] + df.values.tolist())
 
-# ---------- SIDEBAR ----------
+# ---------- PAGE SETUP ----------
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 menu = st.sidebar.radio("📁 Menu", ["🌟 New Patient", "📋 Doctor Update", "📊 View Data"], index=0)
 
@@ -68,7 +68,7 @@ if menu == "🌟 New Patient":
     st.title("📋 Pre-Visit Entry")
 
     try:
-        last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\\d+)')[0].astype(int).max()
+        last_id = df["Patient_ID"].dropna().astype(str).str.extract(r"(\d+)")[0].astype(int).max()
         next_id = f"{last_id + 1:04d}"
     except:
         next_id = "0001"
@@ -84,7 +84,6 @@ if menu == "🌟 New Patient":
             gender = st.selectbox("Gender", ["Male", "Female", "Child"])
             phone = st.text_input("Phone Number")
         with col2:
-            va = st.text_input("VA: RA / LA")
             bcva_ra = st.text_input("BCVA: RA")
             bcva_la = st.text_input("BCVA: LA")
             iop = st.text_input("IOP: RA / LA")
@@ -110,10 +109,11 @@ if menu == "🌟 New Patient":
                 "Treatment": "",
                 "Plan": ""
             }])
+            global df
             df = pd.concat([df, new_entry], ignore_index=True)
             push_to_sheet(df)
             st.success("✅ Data saved to Google Sheets.")
-            st.rerun()
+            st.experimental_rerun()
 
 # ---------- DOCTOR UPDATE ----------
 elif menu == "📋 Doctor Update":
@@ -123,77 +123,96 @@ elif menu == "📋 Doctor Update":
     if waiting_df.empty:
         st.success("🎉 No patients are waiting.")
     else:
-        for _, row in waiting_df.iterrows():
-            with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
-                selected = df[df["Patient_ID"] == row["Patient_ID"]]
-                with st.form(f"form_{row['Patient_ID']}", clear_on_submit=True):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        ac = st.text_area("AC", height=100)
-                        fundus = st.text_area("Fundus", height=100)
-                        us = st.text_input("U/S")
-                        oct_ffa = st.text_input("OCT/FFA")
-                    with col2:
-                        diagnosis = st.text_input("Diagnosis", value=selected["Diagnosis"].values[0])
-                        treatment = st.text_input("Treatment")
-                        plan = st.text_input("Plan")
-                    submitted = st.form_submit_button("Update Record")
+        # Show print page if in print_mode
+        if st.session_state.get("print_mode", False):
+            idx = df[df["Patient_ID"] == st.session_state.selected_id].index[0]
+            # Update df with stored session_state values before printing
+            df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
+                st.session_state.ac, st.session_state.fundus, st.session_state.us,
+                st.session_state.oct_ffa, st.session_state.diagnosis,
+                st.session_state.treatment, st.session_state.plan
+            ]
+            record = df.loc[idx]
 
-                if submitted:
-                    idx = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
-                    df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
-                        ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(),
-                        diagnosis.strip(), treatment.strip(), plan.strip()
-                    ]
+            html = f"""
+            <style>
+                body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                h2 {{ color: #2c3e50; }}
+                table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+                td, th {{ border: 1px solid #ddd; padding: 8px; }}
+                th {{ background-color: #f2f2f2; text-align: left; }}
+                .footer {{ margin-top: 30px; font-size: 14px; color: #333; text-align: center; }}
+            </style>
+            <h2>🩺 Patient Record Summary for Dr Kawa Clinic</h2>
+            <h3>Pre-Visit Information</h3>
+            <table>
+                <tr><th>Date</th><td>{record['Date']}</td></tr>
+                <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
+                <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
+                <tr><th>Age</th><td>{record['Age']}</td></tr>
+                <tr><th>Gender</th><td>{record['Gender']}</td></tr>
+                <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
+                <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
+                <tr><th>IOP</th><td>{record['IOP']}</td></tr>
+                <tr><th>Medication</th><td>{record['Medication']}</td></tr>
+            </table>
+            <h3>Doctor's Update</h3>
+            <table>
+                <tr><th>AC</th><td>{record['AC']}</td></tr>
+                <tr><th>Fundus</th><td>{record['Fundus']}</td></tr>
+                <tr><th>U/S</th><td>{record['U/S']}</td></tr>
+                <tr><th>OCT/FFA</th><td>{record['OCT/FFA']}</td></tr>
+                <tr><th>Diagnosis</th><td>{record['Diagnosis']}</td></tr>
+                <tr><th>Treatment</th><td>{record['Treatment']}</td></tr>
+                <tr><th>Plan</th><td>{record['Plan']}</td></tr>
+            </table>
+            <div class="footer" style="line-height:1.5; font-weight: bold;">
+            دكتور كاوه خليل _ ڕاوێژکاری نەشتەرگەری تۆڕی چاو<br>
+            استشاري جراحة العيون والشبكية _ دكتورا (بورد) الماني<br>
+            ناونيشان/سهنته رى كلّوبالّ _ العنوان / مركز كلوبال<br>
+            07507712332 - 07715882299
+            </div>
+            <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px; margin-top:20px;">🖨️ Print This Page</button></center>
+            """
+            st.components.v1.html(html, height=1200)
 
-                    # ---------- SHOW PRINT PAGE ----------
-                    record = df.loc[idx]
-                    html = f"""
-                    <style>
-                        body {{ font-family: Arial, sans-serif; padding: 20px; }}
-                        h2 {{ color: #2c3e50; }}
-                        table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-                        td, th {{ border: 1px solid #ddd; padding: 8px; }}
-                        th {{ background-color: #f2f2f2; text-align: left; }}
-                        .footer {{ margin-top: 30px; font-size: 14px; color: #333; text-align: center; }}
-                    </style>
-                    <h2>🩺 Patient Record Summary for Dr Kawa Clinic</h2>
-                    <h3>Pre-Visit Information</h3>
-                    <table>
-                        <tr><th>Date</th><td>{record['Date']}</td></tr>
-                        <tr><th>Patient ID</th><td>{record['Patient_ID']}</td></tr>
-                        <tr><th>Full Name</th><td>{record['Full_Name']}</td></tr>
-                        <tr><th>Age</th><td>{record['Age']}</td></tr>
-                        <tr><th>Gender</th><td>{record['Gender']}</td></tr>
-                        <tr><th>Phone Number</th><td>{record['Phone_Number']}</td></tr>
-                        <tr><th>Visual Acuity</th><td>{record['Visual_Acuity']}</td></tr>
-                        <tr><th>IOP</th><td>{record['IOP']}</td></tr>
-                        <tr><th>Medication</th><td>{record['Medication']}</td></tr>
-                    </table>
-                    <h3>Doctor's Update</h3>
-                    <table>
-                        <tr><th>AC</th><td>{record['AC']}</td></tr>
-                        <tr><th>Fundus</th><td>{record['Fundus']}</td></tr>
-                        <tr><th>U/S</th><td>{record['U/S']}</td></tr>
-                        <tr><th>OCT/FFA</th><td>{record['OCT/FFA']}</td></tr>
-                        <tr><th>Diagnosis</th><td>{record['Diagnosis']}</td></tr>
-                        <tr><th>Treatment</th><td>{record['Treatment']}</td></tr>
-                        <tr><th>Plan</th><td>{record['Plan']}</td></tr>
-                    </table>
-                    <div class="footer" style="line-height:1.5; font-weight: bold;">
-                    دكتور كاوه خليل _ ڕاوێژکاری نەشتەرگەری تۆڕی چاو<br>
-                    استشاري جراحة العيون والشبكية _ دكتورا (بورد) الماني<br>
-                    ناونيشان/سهنته رى كلّوبالّ _ العنوان / مركز كلوبال<br>
-                    07507712332 - 07715882299
-                    </div>
-                    <center><button onclick="window.print()" style="padding:10px 20px; font-size:16px; margin-top:20px;">🖨️ Print This Page</button></center>
-                    """
-                    st.components.v1.html(html, height=1200)
+            if st.button(f"✅ Done - Save and Remove Patient {st.session_state.selected_id} from Waiting List"):
+                push_to_sheet(df)
+                # Remove patient from waiting list by setting Diagnosis etc. to mark as done (or you can remove entirely)
+                # But since data is updated, this patient will no longer appear in waiting list
+                st.session_state.print_mode = False
+                st.session_state.selected_id = None
+                st.success("✅ Saved to Google Sheets and updated waiting list.")
+                st.experimental_rerun()
 
-                    # ---------- SAVE AFTER PRINT ----------
-                    push_to_sheet(df)
-                    st.success("✅ Saved to Google Sheets after Doctor Update.")
-                    st.rerun()
+        else:
+            for _, row in waiting_df.iterrows():
+                with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
+                    with st.form(f"form_{row['Patient_ID']}", clear_on_submit=True):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            ac = st.text_area("AC", height=100)
+                            fundus = st.text_area("Fundus", height=100)
+                            us = st.text_input("U/S")
+                            oct_ffa = st.text_input("OCT/FFA")
+                        with col2:
+                            diagnosis = st.text_input("Diagnosis")
+                            treatment = st.text_input("Treatment")
+                            plan = st.text_input("Plan")
+                        submitted = st.form_submit_button("Update Record")
+
+                    if submitted:
+                        # Save inputs temporarily in session state for print mode
+                        st.session_state.print_mode = True
+                        st.session_state.selected_id = row["Patient_ID"]
+                        st.session_state.ac = ac.strip()
+                        st.session_state.fundus = fundus.strip()
+                        st.session_state.us = us.strip()
+                        st.session_state.oct_ffa = oct_ffa.strip()
+                        st.session_state.diagnosis = diagnosis.strip()
+                        st.session_state.treatment = treatment.strip()
+                        st.session_state.plan = plan.strip()
+                        st.experimental_rerun()
 
 # ---------- VIEW DATA ----------
 elif menu == "📊 View Data":
