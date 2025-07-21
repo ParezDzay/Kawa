@@ -21,7 +21,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ---------- Google Sheets Setup ----------
-SHEET_ID = "YOUR_SHEET_ID"  # <-- put your actual Sheet ID here!
+SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"  # Your actual Sheet ID
 
 @st.cache_resource
 def get_sheet():
@@ -47,16 +47,16 @@ def push_to_sheet(df):
         st.error(f"❌ Google Sheets push failed: {e}")
         return False
 
-
 # Page config
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 file_path = "eye_data.csv"
 
-# Initialize CSV
+# Initialize CSV with all columns needed
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Diagnosis", "Visual_Acuity", "IOP", "Medication"
+        "Diagnosis", "Visual_Acuity", "IOP", "Medication",
+        "AC", "Fundus", "U/S", "OCT/FFA", "Treatment", "Plan"
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
@@ -78,7 +78,7 @@ if menu == "🌟 New Patient":
         st.title("📋 Pre-Visit Entry")
 
         try:
-            last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\\d+)')[0].astype(int).max()
+            last_id = df["Patient_ID"].dropna().astype(str).str.extract(r'(\d+)')[0].astype(int).max()
             next_id = f"{last_id + 1:04d}"
         except:
             next_id = "0001"
@@ -93,23 +93,15 @@ if menu == "🌟 New Patient":
                 gender = st.selectbox("Gender", ["Male", "Female", "Child"])
                 phone = st.text_input("Phone Number")
             with col2:
-                vacol1, vacol2 = st.columns(2)
-                with vacol1:
-                    va_ra_la= st.text_input("VA: RA / LA")
-                with vacol2:
-                    bcva_ra = st.text_input("BCVA: RA")
-
-                bcva_la, iopcol2 = st.columns(2)
-                with bcva_la:
-                    bcva_la = st.text_input("BCVA: LA")
-                with iopcol2:
-                    iop_ra_la= st.text_input("IOP: RA / LA")
-
+                va_ra_la = st.text_input("VA: RA / LA")
+                bcva_ra = st.text_input("BCVA: RA")
+                bcva_la = st.text_input("BCVA: LA")
+                iop_ra_la = st.text_input("IOP: RA / LA")
                 medication = st.text_input("Medication")
 
             if st.form_submit_button("Submit"):
-                visual_acuity = f"RA ({va_ra}) ; LA ({va_la})"
-                iop = f"RA ({iop_ra}) ; LA ({iop_la})"
+                visual_acuity = va_ra_la  # Directly use combined input
+                iop = iop_ra_la           # Directly use combined input
                 new_entry = pd.DataFrame([{
                     "Date": date,
                     "Patient_ID": next_id,
@@ -120,17 +112,23 @@ if menu == "🌟 New Patient":
                     "Diagnosis": "",
                     "Visual_Acuity": visual_acuity,
                     "IOP": iop,
-                    "Medication": medication
+                    "Medication": medication,
+                    "AC": "",
+                    "Fundus": "",
+                    "U/S": "",
+                    "OCT/FFA": "",
+                    "Treatment": "",
+                    "Plan": ""
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
                 try:
                     df.to_csv(file_path, index=False)
                     st.success("✅ Data saved locally.")
-                    if push_to_github(file_path, f"Pre-visit added for Patient {next_id}"):
-                        st.success("✅ Pushed to GitHub.")
+                    if push_to_sheet(df):
+                        st.success("✅ Pushed to Google Sheets.")
                     else:
-                        st.warning("⚠️ GitHub push failed.")
-                    st.rerun()
+                        st.warning("⚠️ Google Sheets push failed.")
+                    st.experimental_rerun()
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
 
@@ -170,10 +168,10 @@ if menu == "🌟 New Patient":
                         try:
                             df.to_csv(file_path, index=False)
                             st.success("✅ Updated locally.")
-                            if push_to_github(file_path, f"Post-visit update for Patient {row['Patient_ID']}"):
-                                st.success("✅ Pushed to GitHub.")
+                            if push_to_sheet(df):
+                                st.success("✅ Pushed to Google Sheets.")
                             else:
-                                st.warning("⚠️ GitHub push failed.")
+                                st.warning("⚠️ Google Sheets push failed.")
 
                             record = df.loc[idx]
                             html = f"""
