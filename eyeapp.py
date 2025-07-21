@@ -112,7 +112,7 @@ if menu == "🌟 New Patient":
             df = pd.concat([df, new_entry], ignore_index=True)
             push_to_sheet(df)
             st.success("✅ Data saved to Google Sheets.")
-            st.experimental_rerun()
+            st.rerun()
 
 # ---------- DOCTOR UPDATE ----------
 elif menu == "📋 Doctor Update":
@@ -182,7 +182,7 @@ elif menu == "📋 Doctor Update":
                 st.session_state.print_mode = False
                 st.session_state.selected_id = None
                 st.success("✅ Saved to Google Sheets and updated waiting list.")
-                st.experimental_rerun()
+                st.rerun()
 
         else:
             for _, row in waiting_df.iterrows():
@@ -211,7 +211,7 @@ elif menu == "📋 Doctor Update":
                         st.session_state.diagnosis = diagnosis.strip()
                         st.session_state.treatment = treatment.strip()
                         st.session_state.plan = plan.strip()
-                        st.experimental_rerun()
+                        st.rerun()
 
 # ---------- VIEW DATA ----------
 elif menu == "📊 View Data":
