@@ -21,7 +21,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ---------- Google Sheets Setup ----------
-SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
+SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"  # Your actual Sheet ID
 
 @st.cache_resource
 def get_sheet():
@@ -56,7 +56,8 @@ file_path = "eye_data.csv"
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Diagnosis", "Visual_Acuity", "IOP", "Medication"
+        "Diagnosis", "Visual_Acuity", "IOP", "Medication",
+        "AC", "Fundus", "U/S", "OCT/FFA", "Treatment", "Plan"
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
@@ -95,7 +96,8 @@ if menu == "🌟 New Patient":
             with col2:
                 vacol1, vacol2 = st.columns(2)
                 with vacol1:
-                    va_ra_la= st.text_input("VA: RA / LA")
+                    va_ra = st.text_input("VA: RA")
+                    va_la = st.text_input("VA: LA")
                 with vacol2:
                     bcva_ra = st.text_input("BCVA: RA")
 
@@ -103,13 +105,14 @@ if menu == "🌟 New Patient":
                 with bcva_la:
                     bcva_la = st.text_input("BCVA: LA")
                 with iopcol2:
-                    iop_ra_la= st.text_input("IOP: RA / LA")
+                    iop_ra = st.text_input("IOP: RA")
+                    iop_la = st.text_input("IOP: LA")
 
                 medication = st.text_input("Medication")
 
             if st.form_submit_button("Submit"):
-                visual_acuity = f"RA ({va_ra_la}) ; LA ({bcva_ra})"
-                iop = f"RA ({iop_ra_la}) ; LA ()"  # Note: You may want to fix this if you want LA IOP input separately
+                visual_acuity = f"RA ({va_ra}) ; LA ({va_la})"
+                iop = f"RA ({iop_ra}) ; LA ({iop_la})"
                 new_entry = pd.DataFrame([{
                     "Date": date,
                     "Patient_ID": next_id,
@@ -120,33 +123,36 @@ if menu == "🌟 New Patient":
                     "Diagnosis": "",
                     "Visual_Acuity": visual_acuity,
                     "IOP": iop,
-                    "Medication": medication
+                    "Medication": medication,
+                    "AC": "",
+                    "Fundus": "",
+                    "U/S": "",
+                    "OCT/FFA": "",
+                    "Treatment": "",
+                    "Plan": ""
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
                 try:
                     df.to_csv(file_path, index=False)
                     st.success("✅ Data saved locally.")
+                    df["Date"] = df["Date"].astype(str)  # Fix date serialization
                     if push_to_sheet(df):
                         st.success("✅ Data saved to Google Sheets.")
                     else:
                         st.warning("⚠️ Google Sheets save failed.")
-                    # If you use GitHub push function, you can add it here, otherwise remove
-                    # if push_to_github(file_path, f"Pre-visit added for Patient {next_id}"):
-                    #     st.success("✅ Pushed to GitHub.")
-                    # else:
-                    #     st.warning("⚠️ GitHub push failed.")
-                    st.experimental_rerun()
+                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
 
     # --- Waiting List with Inline Update ---
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
-        filtered_df = df.copy()
-        # Fix if missing columns by adding them empty:
+        # Ensure columns exist to avoid KeyError
         for col in ["Diagnosis", "Treatment", "Plan"]:
-            if col not in filtered_df.columns:
-                filtered_df[col] = ""
+            if col not in df.columns:
+                df[col] = ""
+
+        filtered_df = df.copy()
         filtered_df[["Diagnosis", "Treatment", "Plan"]] = filtered_df[["Diagnosis", "Treatment", "Plan"]].fillna("").astype(str)
         waiting_df = filtered_df[(filtered_df["Diagnosis"] == "") & (filtered_df["Treatment"] == "") & (filtered_df["Plan"] == "")]
 
@@ -165,7 +171,7 @@ if menu == "🌟 New Patient":
                             us = st.text_input("U/S")
                             oct_ffa = st.text_input("OCT/FFA")
                         with col2:
-                            diagnosis = st.text_input("Diagnosis", value=selected["Diagnosis"].values[0] if "Diagnosis" in selected else "")
+                            diagnosis = st.text_input("Diagnosis", value=selected["Diagnosis"].values[0])
                             treatment = st.text_input("Treatment")
                             plan = st.text_input("Plan")
 
@@ -179,15 +185,11 @@ if menu == "🌟 New Patient":
                         try:
                             df.to_csv(file_path, index=False)
                             st.success("✅ Updated locally.")
+                            df["Date"] = df["Date"].astype(str)  # Fix date serialization
                             if push_to_sheet(df):
                                 st.success("✅ Updated Google Sheets.")
                             else:
                                 st.warning("⚠️ Google Sheets update failed.")
-
-                            # if push_to_github(file_path, f"Post-visit update for Patient {row['Patient_ID']}"):
-                            #     st.success("✅ Pushed to GitHub.")
-                            # else:
-                            #     st.warning("⚠️ GitHub push failed.")
 
                             record = df.loc[idx]
                             html = f"""
@@ -235,16 +237,14 @@ if menu == "🌟 New Patient":
 
                             updated_ids.append(row['Patient_ID'])
 
-                            # Remove updated patients from df and save again
-                            df = df[~df['Patient_ID'].isin(updated_ids)]
-                            df.to_csv(file_path, index=False)
-
-                            st.experimental_rerun()
-
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
 
-# --- View Data ---
+            if updated_ids:
+                # Remove updated patients from waiting list by filtering df
+                df = df[~df['Patient_ID'].isin(updated_ids)]
+                df.to_csv(file_path, index=False)
+
 elif menu == "📊 View Data":
     st.title("📊 Patient Records")
     tab1, tab2 = st.tabs(["📋 All Records", "🗕️ Download CSV"])
