@@ -173,8 +173,7 @@ if menu == "🌟 New Patient":
                                 st.warning("⚠️ Google Sheets update failed.")
                             updated_ids.append(row['Patient_ID'])
                             st.rerun()
-
-                        record = df.loc[idx]
+                            record = df.loc[idx]
                         html = f"""
                         <style>
                             body {{ font-family: Arial, sans-serif; padding: 20px; }}
