@@ -24,7 +24,7 @@ def generate_patient_pdf(record):
 from google.oauth2.service_account import Credentials
 
 # ---------- Password Protection ----------
-PASSWORD = "1978"
+PASSWORD = "1977"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
