@@ -139,7 +139,9 @@ if menu == "📅 Appointments":
     st.subheader("📋 All Appointments")
     appt_df = df[["Appt_Name", "Appt_Date", "Appt_Payment"]].dropna(how="all")
     if not appt_df.empty:
-        st.dataframe(appt_df, use_container_width=True)
+    appt_df_display = appt_df.reset_index(drop=True)
+    appt_df_display.index = appt_df_display.index + 1  # start index from 1
+    st.dataframe(appt_df_display, use_container_width=True)
     else:
         st.info("No appointments recorded yet.")
 
