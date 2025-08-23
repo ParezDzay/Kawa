@@ -92,6 +92,13 @@ if "selected_waiting_id" not in st.session_state:
 # Sidebar menu
 menu = st.sidebar.radio("📁 Menu", ["📅 Appointments", "🌟 New Patient", "📊 View Data"], index=0)
 
+# ========== MANUAL GOOGLE SHEETS PUSH BUTTON ==========
+if st.sidebar.button("⬆️ Push Data to Google Sheets"):
+    if push_to_sheet(df):
+        st.success("✅ Data pushed to Google Sheets.")
+    else:
+        st.error("❌ Failed to push to Google Sheets.")
+
 # ========== APPOINTMENTS ==========
 if menu == "📅 Appointments":
     st.title("📅 Appointment Records")
@@ -128,10 +135,6 @@ if menu == "📅 Appointments":
                 df.to_csv(file_path, index=False)
                 st.success("✅ Appointment saved locally.")
                 df = df.fillna("").astype(str)
-                if push_to_sheet(df):
-                    st.success("✅ Appointment saved to Google Sheets.")
-                else:
-                    st.warning("⚠️ Google Sheets save failed.")
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Save failed: {e}")
@@ -204,10 +207,6 @@ elif menu == "🌟 New Patient":
                     df.to_csv(file_path, index=False)
                     st.success("✅ Data saved locally.")
                     df = df.fillna("").astype(str)
-                    if push_to_sheet(df):
-                        st.success("✅ Data saved to Google Sheets.")
-                    else:
-                        st.warning("⚠️ Google Sheets save failed.")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
@@ -253,10 +252,6 @@ elif menu == "🌟 New Patient":
                             df.to_csv(file_path, index=False)
                             st.success("✅ Updated locally.")
                             df = df.fillna("").astype(str)
-                            if push_to_sheet(df):
-                                st.success("✅ Updated Google Sheets.")
-                            else:
-                                st.warning("⚠️ Google Sheets update failed.")
                             patient_record = df.loc[idx_df].to_dict()
                             pdf_path = generate_patient_pdf(patient_record)
                             with open(pdf_path, "rb") as f:
