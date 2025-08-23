@@ -85,11 +85,15 @@ if "selected_waiting_id" not in st.session_state:
     st.session_state.selected_waiting_id = None
 
 # Sidebar
-menu = st.sidebar.radio("📁 Menu", ["🌟 New Patient", "📊 View Data", "📅 Appointments"], index=0)
+menu = st.sidebar.radio("📁 Menu", ["🌟 New Patient", "📊 View Data"], index=0)
 
 # ========== NEW PATIENT SECTION ==========
 if menu == "🌟 New Patient":
-    tabs = st.tabs(["📋 Pre-Visit Entry", "⏳ Waiting List / Doctor update"])
+    tabs = st.tabs([
+        "📋 Pre-Visit Entry", 
+        "⏳ Waiting List / Doctor update", 
+        "📅 Appointments"   # 👈 added here
+    ])
 
     # --- Pre-Visit Entry ---
     with tabs[0]:
@@ -205,6 +209,57 @@ if menu == "🌟 New Patient":
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
 
+    # --- Appointments ---
+    with tabs[2]:
+        st.title("📅 Appointment Records")
+
+        with st.form("appt_form", clear_on_submit=True):
+            appt_name = st.text_input("Patient Name")
+            appt_date = st.date_input("Appointment Date")
+            appt_payment = st.text_input("Payment")
+
+            if st.form_submit_button("Save Appointment"):
+                new_appt = pd.DataFrame([{
+                    "Date": "",
+                    "Patient_ID": "",
+                    "Full_Name": "",
+                    "Age": "",
+                    "Gender": "",
+                    "Phone_Number": "",
+                    "Visual_Acuity": "",
+                    "IOP": "",
+                    "Medication": "",
+                    "AC": "",
+                    "Fundus": "",
+                    "U/S": "",
+                    "OCT/FFA": "",
+                    "Diagnosis": "",
+                    "Treatment": "",
+                    "Plan": "",
+                    "Appt_Name": appt_name,
+                    "Appt_Date": str(appt_date),
+                    "Appt_Payment": appt_payment
+                }])
+                df = pd.concat([df, new_appt], ignore_index=True)
+                try:
+                    df.to_csv(file_path, index=False)
+                    st.success("✅ Appointment saved locally.")
+                    df = df.fillna("").astype(str)
+                    if push_to_sheet(df):
+                        st.success("✅ Appointment saved to Google Sheets.")
+                    else:
+                        st.warning("⚠️ Google Sheets save failed.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Save failed: {e}")
+
+        st.subheader("📋 All Appointments")
+        appt_df = df[["Appt_Name", "Appt_Date", "Appt_Payment"]].dropna(how="all")
+        if not appt_df.empty:
+            st.dataframe(appt_df, use_container_width=True)
+        else:
+            st.info("No appointments recorded yet.")
+
 # ========== VIEW DATA ==========
 elif menu == "📊 View Data":
     st.title("📊 Patient Records")
@@ -218,54 +273,3 @@ elif menu == "📊 View Data":
             file_name="all_eye_patients.csv",
             mime="text/csv"
         )
-
-# ========== APPOINTMENTS ==========
-elif menu == "📅 Appointments":
-    st.title("📅 Appointment Records")
-
-    with st.form("appt_form", clear_on_submit=True):
-        appt_name = st.text_input("Patient Name")
-        appt_date = st.date_input("Appointment Date")
-        appt_payment = st.text_input("Payment")
-
-        if st.form_submit_button("Save Appointment"):
-            new_appt = pd.DataFrame([{
-                "Date": "",
-                "Patient_ID": "",
-                "Full_Name": "",
-                "Age": "",
-                "Gender": "",
-                "Phone_Number": "",
-                "Visual_Acuity": "",
-                "IOP": "",
-                "Medication": "",
-                "AC": "",
-                "Fundus": "",
-                "U/S": "",
-                "OCT/FFA": "",
-                "Diagnosis": "",
-                "Treatment": "",
-                "Plan": "",
-                "Appt_Name": appt_name,
-                "Appt_Date": str(appt_date),
-                "Appt_Payment": appt_payment
-            }])
-            df = pd.concat([df, new_appt], ignore_index=True)
-            try:
-                df.to_csv(file_path, index=False)
-                st.success("✅ Appointment saved locally.")
-                df = df.fillna("").astype(str)
-                if push_to_sheet(df):
-                    st.success("✅ Appointment saved to Google Sheets.")
-                else:
-                    st.warning("⚠️ Google Sheets save failed.")
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ Save failed: {e}")
-
-    st.subheader("📋 All Appointments")
-    appt_df = df[["Appt_Name", "Appt_Date", "Appt_Payment"]].dropna(how="all")
-    if not appt_df.empty:
-        st.dataframe(appt_df, use_container_width=True)
-    else:
-        st.info("No appointments recorded yet.")
