@@ -214,7 +214,14 @@ elif menu == "🌟 New Patient":
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
         df = df.fillna("")
-        waiting_df = df[(df["Diagnosis"] == "") & (df["Treatment"] == "") & (df["Plan"] == "")]
+
+        # Filter out appointments from waiting list
+        waiting_df = df[
+            (df["Diagnosis"] == "") & 
+            (df["Treatment"] == "") & 
+            (df["Plan"] == "") &
+            (df["Appt_Name"] == "")  # 👈 ignore appointment entries
+        ]
 
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
