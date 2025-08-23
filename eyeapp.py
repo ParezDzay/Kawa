@@ -111,8 +111,6 @@ menu = st.sidebar.radio("📁 Menu", ["📅 Appointments", "🌟 New Patient", "
 if menu == "📅 Appointments":
     st.title("📅 Appointment Records")
 
-    from datetime import time
-
 with st.form("appt_form", clear_on_submit=True):
     appt_name = st.text_input("Patient Name")
     appt_date = st.date_input("Appointment Date")
