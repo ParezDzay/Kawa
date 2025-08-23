@@ -75,16 +75,21 @@ if not os.path.exists(file_path):
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
         "Visual_Acuity", "IOP", "Medication", "AC", "Fundus", "U/S",
         "OCT/FFA", "Diagnosis", "Treatment", "Plan",
-        "Appt_Name", "Appt_Date", "Appt_Payment"   # extra columns for appointments
+        "Appt_Name", "Appt_Date", "Appt_Payment"
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
+
+# ====== Ensure appointment columns exist (safeguard for old CSVs) ======
+for col in ["Appt_Name", "Appt_Date", "Appt_Payment"]:
+    if col not in df.columns:
+        df[col] = ""
 
 # Session state
 if "selected_waiting_id" not in st.session_state:
     st.session_state.selected_waiting_id = None
 
-# Sidebar menu (reordered)
+# Sidebar menu
 menu = st.sidebar.radio("📁 Menu", ["📅 Appointments", "🌟 New Patient", "📊 View Data"], index=0)
 
 # ========== APPOINTMENTS ==========
@@ -214,10 +219,10 @@ elif menu == "🌟 New Patient":
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
         else:
-            for idx, row in waiting_df.iterrows():  # 👈 use idx for unique form key
+            for idx, row in waiting_df.iterrows():  # unique form key
                 with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
                     selected = df[df["Patient_ID"] == row["Patient_ID"]]
-                    with st.form(f"form_{row['Patient_ID']}_{idx}", clear_on_submit=True):  # 👈 FIX
+                    with st.form(f"form_{row['Patient_ID']}_{idx}", clear_on_submit=True):
                         col1, col2 = st.columns(2)
                         with col1:
                             ac = st.text_area("AC", height=100)
