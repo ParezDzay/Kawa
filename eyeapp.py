@@ -75,7 +75,7 @@ if not os.path.exists(file_path):
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
         "Visual_Acuity", "IOP", "Medication", "AC", "Fundus", "U/S",
         "OCT/FFA", "Diagnosis", "Treatment", "Plan",
-        "Appt_Name", "Appt_Date", "Appt_Payment"   # 👈 extra columns for appointments
+        "Appt_Name", "Appt_Date", "Appt_Payment"   # extra columns for appointments
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
@@ -214,10 +214,10 @@ elif menu == "🌟 New Patient":
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
         else:
-            for _, row in waiting_df.iterrows():
+            for idx, row in waiting_df.iterrows():  # 👈 use idx for unique form key
                 with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
                     selected = df[df["Patient_ID"] == row["Patient_ID"]]
-                    with st.form(f"form_{row['Patient_ID']}", clear_on_submit=True):
+                    with st.form(f"form_{row['Patient_ID']}_{idx}", clear_on_submit=True):  # 👈 FIX
                         col1, col2 = st.columns(2)
                         with col1:
                             ac = st.text_area("AC", height=100)
@@ -231,8 +231,8 @@ elif menu == "🌟 New Patient":
                         submitted = st.form_submit_button("Update Record")
 
                     if submitted:
-                        idx = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
-                        df.loc[idx, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
+                        idx_df = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
+                        df.loc[idx_df, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
                             ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                         ]
                         try:
@@ -243,7 +243,7 @@ elif menu == "🌟 New Patient":
                                 st.success("✅ Updated Google Sheets.")
                             else:
                                 st.warning("⚠️ Google Sheets update failed.")
-                            patient_record = df.loc[idx].to_dict()
+                            patient_record = df.loc[idx_df].to_dict()
                             pdf_path = generate_patient_pdf(patient_record)
                             with open(pdf_path, "rb") as f:
                                 pdf_bytes = f.read()
