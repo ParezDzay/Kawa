@@ -54,15 +54,24 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# Push to Google Sheet
-def push_to_sheet(df):
+# ---------- Append-only push to Google Sheets ----------
+def push_to_sheet_append(df):
     try:
         df = df.fillna("").astype(str)  # sanitize
-        sheet.clear()
-        sheet.update([df.columns.values.tolist()] + df.values.tolist())
+        existing_records = sheet.get_all_records()
+        existing_df = pd.DataFrame(existing_records)
+
+        # Only keep rows that are not yet in the sheet
+        if not existing_df.empty:
+            new_rows = df.merge(existing_df, how="outer", indicator=True).query('_merge=="left_only"').drop('_merge', axis=1)
+        else:
+            new_rows = df
+
+        if not new_rows.empty:
+            sheet.append_rows(new_rows.values.tolist(), value_input_option="RAW")
         return True
     except Exception as e:
-        st.error(f"❌ Google Sheets push failed: {e}")
+        st.error(f"❌ Google Sheets append failed: {e}")
         return False
 
 # Page config
@@ -127,11 +136,7 @@ if menu == "📅 Appointments":
             try:
                 df.to_csv(file_path, index=False)
                 st.success("✅ Appointment saved locally.")
-                df = df.fillna("").astype(str)
-                if push_to_sheet(df):
-                    st.success("✅ Appointment saved to Google Sheets.")
-                else:
-                    st.warning("⚠️ Google Sheets save failed.")
+                push_to_sheet_append(df)  # append-only push to Google Sheets
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Save failed: {e}")
@@ -203,11 +208,7 @@ elif menu == "🌟 New Patient":
                 try:
                     df.to_csv(file_path, index=False)
                     st.success("✅ Data saved locally.")
-                    df = df.fillna("").astype(str)
-                    if push_to_sheet(df):
-                        st.success("✅ Data saved to Google Sheets.")
-                    else:
-                        st.warning("⚠️ Google Sheets save failed.")
+                    push_to_sheet_append(df)  # append-only push to Google Sheets
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
@@ -252,11 +253,7 @@ elif menu == "🌟 New Patient":
                         try:
                             df.to_csv(file_path, index=False)
                             st.success("✅ Updated locally.")
-                            df = df.fillna("").astype(str)
-                            if push_to_sheet(df):
-                                st.success("✅ Updated Google Sheets.")
-                            else:
-                                st.warning("⚠️ Google Sheets update failed.")
+                            push_to_sheet_append(df)  # append-only push to Google Sheets
                             patient_record = df.loc[idx_df].to_dict()
                             pdf_path = generate_patient_pdf(patient_record)
                             with open(pdf_path, "rb") as f:
