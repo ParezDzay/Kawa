@@ -72,15 +72,15 @@ file_path = "eye_data.csv"
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Visual_Acuity", "IOP", "Medication", "AC", "Fundus", "U/S",
+        "Visual_Acuity", "VAcc", "IOP", "Medication", "AC", "Fundus", "U/S",
         "OCT/FFA", "Diagnosis", "Treatment", "Plan",
         "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
 
-# ====== Safely add new appointment columns if missing ======
-for col in ["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]:
+# ====== Safely add new columns if missing ======
+for col in ["VAcc", "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]:
     if col not in df.columns:
         df[col] = ""
 
@@ -103,7 +103,7 @@ if menu == "📅 Appointments":
         if st.form_submit_button("Save Appointment"):
             new_appt = pd.DataFrame([{
                 "Date": "", "Patient_ID": "", "Full_Name": "", "Age": "", "Gender": "", "Phone_Number": "",
-                "Visual_Acuity": "", "IOP": "", "Medication": "", "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
+                "Visual_Acuity": "", "VAcc": "", "IOP": "", "Medication": "", "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
                 "Diagnosis": "", "Treatment": "", "Plan": "",
                 "Appt_Name": appt_name, "Appt_Date": str(appt_date), "Appt_Time": appt_time, "Appt_Payment": appt_payment
             }])
@@ -149,6 +149,7 @@ elif menu == "🌟 New Patient":
                 phone = st.text_input("Phone Number")
             with col2:
                 va = st.text_input("VA: RA / LA")
+                vacc = st.text_input("VAcc: RA / LA")  # new field
                 bcva_ra = st.text_input("BCVA: RA")
                 bcva_la = st.text_input("BCVA: LA")
                 iop = st.text_input("IOP: RA / LA")
@@ -158,8 +159,10 @@ elif menu == "🌟 New Patient":
                 visual_acuity = f"RA ({bcva_ra}) ; LA ({bcva_la})"
                 new_entry = pd.DataFrame([{
                     "Date": str(date), "Patient_ID": next_id, "Full_Name": full_name, "Age": age,
-                    "Gender": gender, "Phone_Number": phone, "Visual_Acuity": visual_acuity, "IOP": iop,
-                    "Medication": medication, "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
+                    "Gender": gender, "Phone_Number": phone,
+                    "Visual_Acuity": visual_acuity, "VAcc": vacc,
+                    "IOP": iop, "Medication": medication,
+                    "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
                     "Diagnosis": "", "Treatment": "", "Plan": "",
                     "Appt_Name": "", "Appt_Date": "", "Appt_Time": "", "Appt_Payment": ""
                 }])
