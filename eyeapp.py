@@ -111,18 +111,19 @@ menu = st.sidebar.radio("📁 Menu", ["📅 Appointments", "🌟 New Patient", "
 if menu == "📅 Appointments":
     st.title("📅 Appointment Records")
 
-    with st.form("appt_form", clear_on_submit=True):
-        appt_name = st.text_input("Patient Name")
-        appt_date = st.date_input("Appointment Date")
-        appt_time = st.time_input(
-            "Appointment Time (12 PM to 6 PM)", 
-            value=time(12, 0),
-            min_value=time(12, 0), 
-            max_value=time(18, 0)
-        )
-        appt_payment = st.text_input("Payment")
+    from datetime import time
 
-        if st.form_submit_button("Save Appointment"):
+with st.form("appt_form", clear_on_submit=True):
+    appt_name = st.text_input("Patient Name")
+    appt_date = st.date_input("Appointment Date")
+    appt_time = st.time_input("Appointment Time", value=time(12, 0))
+    appt_payment = st.text_input("Payment")
+
+    if st.form_submit_button("Save Appointment"):
+        # Validate time manually
+        if appt_time < time(12, 0) or appt_time > time(18, 0):
+            st.error("Appointment time must be between 12:00 PM and 6:00 PM")
+        else:
             new_appt = pd.DataFrame([{
                 "Date": "",
                 "Patient_ID": "",
@@ -153,15 +154,6 @@ if menu == "📅 Appointments":
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Save failed: {e}")
-
-    st.subheader("📋 All Appointments")
-    appt_df = df[["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]].dropna(how="all")
-    if not appt_df.empty:
-        appt_df_display = appt_df.reset_index(drop=True)
-        appt_df_display.index = appt_df_display.index + 1  # start index from 1
-        st.dataframe(appt_df_display, use_container_width=True)
-    else:
-        st.info("No appointments recorded yet.")
 
 # ========== NEW PATIENT SECTION ==========
 elif menu == "🌟 New Patient":
