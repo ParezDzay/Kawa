@@ -84,13 +84,13 @@ if not os.path.exists(file_path):
         "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
         "Visual_Acuity", "IOP", "Medication", "AC", "Fundus", "U/S",
         "OCT/FFA", "Diagnosis", "Treatment", "Plan",
-        "Appt_Name", "Appt_Date", "Appt_Payment"
+        "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"
     ]).to_csv(file_path, index=False)
 
 df = pd.read_csv(file_path)
 
 # ====== Ensure appointment columns exist (safeguard for old CSVs) ======
-for col in ["Appt_Name", "Appt_Date", "Appt_Payment"]:
+for col in ["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]:
     if col not in df.columns:
         df[col] = ""
 
@@ -108,6 +108,7 @@ if menu == "📅 Appointments":
     with st.form("appt_form", clear_on_submit=True):
         appt_name = st.text_input("Patient Name")
         appt_date = st.date_input("Appointment Date")
+        appt_time = st.time_input("Appointment Time")  # <-- new field
         appt_payment = st.text_input("Payment")
 
         if st.form_submit_button("Save Appointment"):
@@ -130,6 +131,7 @@ if menu == "📅 Appointments":
                 "Plan": "",
                 "Appt_Name": appt_name,
                 "Appt_Date": str(appt_date),
+                "Appt_Time": str(appt_time),
                 "Appt_Payment": appt_payment
             }])
             df = pd.concat([df, new_appt], ignore_index=True)
@@ -142,7 +144,7 @@ if menu == "📅 Appointments":
                 st.error(f"❌ Save failed: {e}")
 
     st.subheader("📋 All Appointments")
-    appt_df = df[["Appt_Name", "Appt_Date", "Appt_Payment"]].dropna(how="all")
+    appt_df = df[["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]].dropna(how="all")
     if not appt_df.empty:
         appt_df_display = appt_df.reset_index(drop=True)
         appt_df_display.index = appt_df_display.index + 1  # start index from 1
@@ -202,6 +204,7 @@ elif menu == "🌟 New Patient":
                     "Plan": "",
                     "Appt_Name": "",
                     "Appt_Date": "",
+                    "Appt_Time": "",
                     "Appt_Payment": ""
                 }])
                 df = pd.concat([df, new_entry], ignore_index=True)
