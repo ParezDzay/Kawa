@@ -5,6 +5,7 @@ import gspread
 from fpdf import FPDF
 import tempfile
 from google.oauth2.service_account import Credentials
+from datetime import time
 
 def generate_patient_pdf(record):
     pdf = FPDF()
@@ -61,7 +62,6 @@ def push_to_sheet_append(df):
         existing_records = sheet.get_all_records()
         existing_df = pd.DataFrame(existing_records)
 
-        # Only keep rows that are not yet in the sheet
         if not existing_df.empty:
             new_rows = df.merge(existing_df, how="outer", indicator=True).query('_merge=="left_only"').drop('_merge', axis=1)
         else:
@@ -89,8 +89,14 @@ if not os.path.exists(file_path):
 
 df = pd.read_csv(file_path)
 
-# ====== Ensure appointment columns exist (safeguard for old CSVs) ======
-for col in ["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]:
+# ====== Ensure all columns exist (safe for old CSVs) ======
+required_columns = [
+    "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
+    "Visual_Acuity", "IOP", "Medication", "AC", "Fundus", "U/S",
+    "OCT/FFA", "Diagnosis", "Treatment", "Plan",
+    "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"
+]
+for col in required_columns:
     if col not in df.columns:
         df[col] = ""
 
@@ -108,7 +114,12 @@ if menu == "📅 Appointments":
     with st.form("appt_form", clear_on_submit=True):
         appt_name = st.text_input("Patient Name")
         appt_date = st.date_input("Appointment Date")
-        appt_time = st.time_input("Appointment Time")  # <-- new field
+        appt_time = st.time_input(
+            "Appointment Time (12 PM to 6 PM)", 
+            value=time(12, 0),
+            min_value=time(12, 0), 
+            max_value=time(18, 0)
+        )
         appt_payment = st.text_input("Payment")
 
         if st.form_submit_button("Save Appointment"):
@@ -138,7 +149,7 @@ if menu == "📅 Appointments":
             try:
                 df.to_csv(file_path, index=False)
                 st.success("✅ Appointment saved locally.")
-                push_to_sheet_append(df)  # append-only push to Google Sheets
+                push_to_sheet_append(df)
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Save failed: {e}")
@@ -211,7 +222,7 @@ elif menu == "🌟 New Patient":
                 try:
                     df.to_csv(file_path, index=False)
                     st.success("✅ Data saved locally.")
-                    push_to_sheet_append(df)  # append-only push to Google Sheets
+                    push_to_sheet_append(df)
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
@@ -221,18 +232,17 @@ elif menu == "🌟 New Patient":
         st.title("⏳ Patients Waiting for Doctor Update")
         df = df.fillna("")
 
-        # Filter out appointments from waiting list
         waiting_df = df[
             (df["Diagnosis"] == "") & 
             (df["Treatment"] == "") & 
             (df["Plan"] == "") &
-            (df["Appt_Name"] == "")  # 👈 ignore appointment entries
+            (df["Appt_Name"] == "")  # ignore appointment entries
         ]
 
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
         else:
-            for idx, row in waiting_df.iterrows():  # unique form key
+            for idx, row in waiting_df.iterrows():
                 with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
                     selected = df[df["Patient_ID"] == row["Patient_ID"]]
                     with st.form(f"form_{row['Patient_ID']}_{idx}", clear_on_submit=True):
@@ -256,7 +266,7 @@ elif menu == "🌟 New Patient":
                         try:
                             df.to_csv(file_path, index=False)
                             st.success("✅ Updated locally.")
-                            push_to_sheet_append(df)  # append-only push to Google Sheets
+                            push_to_sheet_append(df)
                             patient_record = df.loc[idx_df].to_dict()
                             pdf_path = generate_patient_pdf(patient_record)
                             with open(pdf_path, "rb") as f:
