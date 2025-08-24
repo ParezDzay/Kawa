@@ -20,6 +20,7 @@ def generate_patient_pdf(record):
 
 # ---------- Google Sheets Setup ----------
 SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
+@st.cache_reference
 def get_sheet():
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
