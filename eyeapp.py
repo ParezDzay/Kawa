@@ -32,8 +32,6 @@ def get_sheet():
     )
     client = gspread.authorize(creds)
     sheet = client.open_by_key(SHEET_ID).sheet1
-
-    # Ensure header row is unique
     headers = sheet.row_values(1)
     if len(headers) != len(set(headers)):
         st.error("❌ Google Sheet headers are not unique! Please fix them manually.")
@@ -47,23 +45,18 @@ def push_to_sheet_append(new_df):
     Appends only the new row(s) to Google Sheet.
     """
     try:
-        # Clean column names
         new_df = new_df.rename(lambda x: x.strip(), axis=1).fillna("").astype(str)
-
-        # Reorder columns to match Sheet header
         sheet_columns = sheet.row_values(1)
         if len(sheet_columns) != len(set(sheet_columns)):
             st.error("❌ Google Sheet headers are not unique! Please fix them manually.")
             return False
 
-        # Ensure all columns exist in new_df
+        # Ensure all columns exist
         for col in sheet_columns:
             if col not in new_df.columns:
                 new_df[col] = ""
-
         new_df = new_df[sheet_columns]
 
-        # Convert to list of lists
         rows_to_append = new_df.values.tolist()
         if not rows_to_append:
             return False
@@ -118,12 +111,10 @@ if menu == "📅 Appointments":
                 "Appt_Name": appt_name, "Appt_Date": str(appt_date), "Appt_Time": appt_time, "Appt_Payment": appt_payment
             }])
 
-            # Save locally
             df = pd.concat([df, new_appt], ignore_index=True)
             df.to_csv(file_path, index=False)
             st.success("✅ Appointment saved locally.")
 
-            # Push only new row to Google Sheets
             if push_to_sheet_append(new_appt):
                 st.success("✅ Appointment synced to Google Sheets.")
             st.rerun()
@@ -183,6 +174,13 @@ elif menu == "🌟 New Patient":
                 df.to_csv(file_path, index=False)
                 st.success("✅ Data saved locally.")
 
+                # Push to Google Sheet
+                sheet_columns = sheet.row_values(1)
+                for col in sheet_columns:
+                    if col not in new_entry.columns:
+                        new_entry[col] = ""
+                new_entry = new_entry[sheet_columns]
+
                 if push_to_sheet_append(new_entry):
                     st.success("✅ Patient data synced to Google Sheets.")
                 st.rerun()
@@ -192,8 +190,8 @@ elif menu == "🌟 New Patient":
         st.title("⏳ Patients Waiting for Doctor Update")
         df = df.fillna("")
         waiting_df = df[
-            (df["Diagnosis"] == "") & 
-            (df["Treatment"] == "") & 
+            (df["Diagnosis"] == "") &
+            (df["Treatment"] == "") &
             (df["Plan"] == "") &
             (df["Appt_Name"] == "")
         ]
@@ -224,7 +222,17 @@ elif menu == "🌟 New Patient":
                         df.to_csv(file_path, index=False)
                         st.success("✅ Updated locally.")
 
-                        patient_record = df.loc[[idx_df]]  # keep as DataFrame
+                        # Prepare row for Google Sheets
+                        patient_record = df.loc[[idx_df]]
+                        sheet_columns = sheet.row_values(1)
+                        for col in sheet_columns:
+                            if col not in patient_record.columns:
+                                patient_record[col] = ""
+                        patient_record = patient_record[sheet_columns]
+
+                        if push_to_sheet_append(patient_record):
+                            st.success("✅ Updated patient synced to Google Sheets.")
+
                         pdf_path = generate_patient_pdf(patient_record.iloc[0].to_dict())
                         with open(pdf_path, "rb") as f:
                             pdf_bytes = f.read()
@@ -234,7 +242,6 @@ elif menu == "🌟 New Patient":
                                 file_name=f"Patient_{row['Patient_ID']}_summary.pdf",
                                 mime="application/pdf",
                             )
-                        push_to_sheet_append(patient_record)
 
 # ========== VIEW DATA ==========
 elif menu == "📊 View Data":
