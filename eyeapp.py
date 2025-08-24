@@ -101,7 +101,6 @@ if menu == "📅 Appointments":
             try:
                 sheet.append_rows(new_appt.values.tolist(), value_input_option="RAW")
                 st.success("✅ Appointment saved to Google Sheets.")
-                st.experimental_rerun()
             except Exception as e:
                 st.error(f"❌ Failed to save appointment: {e}")
 
