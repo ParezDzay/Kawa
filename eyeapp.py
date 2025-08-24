@@ -104,7 +104,6 @@ if menu == "📅 Appointments":
                 df.to_csv(file_path, index=False)
                 st.success("✅ Appointment saved locally.")
                 push_to_sheet_append(df)  # Sync all appointments
-                st.rerun()
             except Exception as e:
                 st.error(f"❌ Save failed: {e}")
 
@@ -162,7 +161,7 @@ elif menu == "🌟 New Patient":
                 try:
                     df.to_csv(file_path, index=False)
                     st.success("✅ Data saved locally.")
-                    st.experimental_rerun()
+                    # No experimental_rerun, form clears automatically
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
 
