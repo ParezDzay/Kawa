@@ -18,7 +18,6 @@ def generate_patient_pdf(record):
     pdf.output(temp_file.name)
     return temp_file.name
 
-
 # ---------- Google Sheets Setup ----------
 SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
 @st.cache_resource
