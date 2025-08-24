@@ -35,29 +35,6 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# ----------------- Append-only push -----------------
-def push_to_sheet_append(df):
-    try:
-        # Replace NaN with empty strings to avoid JSON issues
-        df_clean = df.fillna("").astype(str)
-        existing_records = sheet.get_all_records()
-        existing_df = pd.DataFrame(existing_records)
-
-        # Only append truly new rows
-        if not existing_df.empty:
-            combined = pd.concat([existing_df, df_clean], ignore_index=True)
-            new_rows = combined.drop_duplicates(keep='first').tail(len(df_clean))
-        else:
-            new_rows = df_clean
-
-        if not new_rows.empty:
-            sheet.append_rows(new_rows.values.tolist(), value_input_option="RAW")
-
-        return True
-    except Exception as e:
-        st.error(f"❌ Google Sheets append failed: {e}")
-        return False
-
 # ----------------- Page Config -----------------
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 file_path = "eye_data.csv"
@@ -88,7 +65,27 @@ menu = st.sidebar.radio("📁 Menu", ["📅 Appointments", "🌟 New Patient", "
 # ----------------- APPOINTMENTS -----------------
 if menu == "📅 Appointments":
     st.title("📅 Appointment Records")
-    
+
+    # --- Load existing appointments from Google Sheet ---
+    try:
+        records = sheet.get_all_records()
+        if records:
+            appt_df = pd.DataFrame(records)[["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"]]
+        else:
+            appt_df = pd.DataFrame(columns=["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"])
+    except Exception as e:
+        st.error(f"❌ Failed to load appointments from Google Sheets: {e}")
+        appt_df = pd.DataFrame(columns=["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"])
+
+    # --- Display appointments (most recent first) ---
+    if not appt_df.empty:
+        appt_df_display = appt_df.iloc[::-1].reset_index(drop=True)
+        appt_df_display.index = appt_df_display.index + 1
+        st.dataframe(appt_df_display, use_container_width=True)
+    else:
+        st.info("No appointments recorded yet.")
+
+    # --- Form to add new appointment ---
     with st.form("appt_form", clear_on_submit=True):
         appt_name = st.text_input("Patient Name")
         appt_date = st.date_input("Appointment Date")
@@ -96,28 +93,17 @@ if menu == "📅 Appointments":
         appt_payment = st.text_input("Payment")
         if st.form_submit_button("Save Appointment"):
             new_appt = pd.DataFrame([{
-                "Date": "", "Patient_ID": "", "Full_Name": "", "Age": "", "Gender": "", "Phone_Number": "",
-                "Visual_Acuity": "", "VAcc": "", "IOP": "", "Medication": "", "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
-                "Diagnosis": "", "Treatment": "", "Plan": "",
-                "Appt_Name": appt_name, "Appt_Date": str(appt_date), "Appt_Time": appt_time, "Appt_Payment": appt_payment
+                "Appt_Name": appt_name,
+                "Appt_Date": str(appt_date),
+                "Appt_Time": appt_time,
+                "Appt_Payment": appt_payment
             }])
-            df = pd.concat([df, new_appt], ignore_index=True)
             try:
-                df.to_csv(file_path, index=False)
-                st.success("✅ Appointment saved locally.")
-                push_to_sheet_append(new_appt)  # Only append new row, not entire df
-                st.rerun()
+                sheet.append_rows(new_appt.values.tolist(), value_input_option="RAW")
+                st.success("✅ Appointment saved to Google Sheets.")
+                st.experimental_rerun()
             except Exception as e:
-                st.error(f"❌ Save failed: {e}")
-
-    st.subheader("📋 All Appointments")
-    appt_df = df[["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"]].dropna(how="all")
-    if not appt_df.empty:
-        appt_df_display = appt_df.iloc[::-1].reset_index(drop=True)
-        appt_df_display.index = appt_df_display.index + 1
-        st.dataframe(appt_df_display, use_container_width=True)
-    else:
-        st.info("No appointments recorded yet.")
+                st.error(f"❌ Failed to save appointment: {e}")
 
 # ----------------- NEW PATIENT -----------------
 elif menu == "🌟 New Patient":
@@ -164,8 +150,7 @@ elif menu == "🌟 New Patient":
                 try:
                     df.to_csv(file_path, index=False)
                     st.success("✅ Data saved locally.")
-                    push_to_sheet_append(new_entry)
-                    st.rerun()
+                    st.experimental_rerun()
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
 
@@ -206,7 +191,6 @@ elif menu == "🌟 New Patient":
                         try:
                             df.to_csv(file_path, index=False)
                             st.success("✅ Updated locally.")
-                            push_to_sheet_append(df.iloc[[idx_df]])  # append only updated row
                             patient_record = df.loc[idx_df].to_dict()
                             pdf_path = generate_patient_pdf(patient_record)
                             with open(pdf_path,"rb") as f:
@@ -215,7 +199,7 @@ elif menu == "🌟 New Patient":
                                     label=f"🖨️ Download PDF Summary for Patient {row['Patient_ID']}",
                                     data=pdf_bytes,
                                     file_name=f"Patient_{row['Patient_ID']}_summary.pdf",
-                                    mime="application/pdf",
+                                    mime="application/pdf"
                                 )
                         except Exception as e:
                             st.error(f"❌ Update failed: {e}")
@@ -225,7 +209,7 @@ elif menu == "📊 View Data":
     st.title("📊 Patient Records")
     tab1,tab2 = st.tabs(["📋 All Records","🗕️ Download CSV"])
     with tab1:
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df,use_container_width=True)
     with tab2:
         st.download_button(
             label="⬇️ Download All Records",
