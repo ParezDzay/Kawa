@@ -45,17 +45,25 @@ sheet = get_sheet()
 def push_to_sheet_append(new_df):
     """
     Appends only the new row(s) to Google Sheet.
-    new_df: pandas DataFrame with the same columns as the Sheet.
     """
     try:
         # Clean column names
         new_df = new_df.rename(lambda x: x.strip(), axis=1).fillna("").astype(str)
 
-        if new_df.columns.duplicated().any():
-            st.error("❌ Duplicate column names in dataframe: " +
-                     ", ".join(new_df.columns[new_df.columns.duplicated()]))
+        # Reorder columns to match Sheet header
+        sheet_columns = sheet.row_values(1)
+        if len(sheet_columns) != len(set(sheet_columns)):
+            st.error("❌ Google Sheet headers are not unique! Please fix them manually.")
             return False
 
+        # Ensure all columns exist in new_df
+        for col in sheet_columns:
+            if col not in new_df.columns:
+                new_df[col] = ""
+
+        new_df = new_df[sheet_columns]
+
+        # Convert to list of lists
         rows_to_append = new_df.values.tolist()
         if not rows_to_append:
             return False
@@ -216,8 +224,8 @@ elif menu == "🌟 New Patient":
                         df.to_csv(file_path, index=False)
                         st.success("✅ Updated locally.")
 
-                        patient_record = df.loc[idx_df].to_dict()
-                        pdf_path = generate_patient_pdf(patient_record)
+                        patient_record = df.loc[[idx_df]]  # keep as DataFrame
+                        pdf_path = generate_patient_pdf(patient_record.iloc[0].to_dict())
                         with open(pdf_path, "rb") as f:
                             pdf_bytes = f.read()
                             st.download_button(
@@ -226,7 +234,7 @@ elif menu == "🌟 New Patient":
                                 file_name=f"Patient_{row['Patient_ID']}_summary.pdf",
                                 mime="application/pdf",
                             )
-                        push_to_sheet_append(df.loc[[idx_df]])
+                        push_to_sheet_append(patient_record)
 
 # ========== VIEW DATA ==========
 elif menu == "📊 View Data":
