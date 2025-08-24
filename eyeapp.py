@@ -65,46 +65,36 @@ menu = st.sidebar.radio("📁 Menu", ["📅 Appointments", "🌟 New Patient", "
 # ----------------- APPOINTMENTS -----------------
 if menu == "📅 Appointments":
     st.title("📅 Appointment Records")
+    
+    with st.form("appt_form", clear_on_submit=True):
+        appt_name = st.text_input("Patient Name")
+        appt_date = st.date_input("Appointment Date")
+        appt_time = st.text_input("Appointment Time (manual)")
+        appt_payment = st.text_input("Payment")
+        if st.form_submit_button("Save Appointment"):
+            new_appt = pd.DataFrame([{
+                "Date": "", "Patient_ID": "", "Full_Name": "", "Age": "", "Gender": "", "Phone_Number": "",
+                "Visual_Acuity": "", "VAcc": "", "IOP": "", "Medication": "", "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
+                "Diagnosis": "", "Treatment": "", "Plan": "",
+                "Appt_Name": appt_name, "Appt_Date": str(appt_date), "Appt_Time": appt_time, "Appt_Payment": appt_payment
+            }])
+            df = pd.concat([df, new_appt], ignore_index=True)
+            try:
+                df.to_csv(file_path, index=False)
+                st.success("✅ Appointment saved locally.")
+                push_to_sheet_append(df)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Save failed: {e}")
 
-    # --- Load existing appointments from Google Sheet ---
-    try:
-        records = sheet.get_all_records()
-        if records:
-            appt_df = pd.DataFrame(records)[["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"]]
-        else:
-            appt_df = pd.DataFrame(columns=["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"])
-    except Exception as e:
-        st.error(f"❌ Failed to load appointments from Google Sheets: {e}")
-        appt_df = pd.DataFrame(columns=["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"])
-
-    # --- Display appointments (most recent first) ---
+    st.subheader("📋 All Appointments")
+    appt_df = df[["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"]].dropna(how="all")
     if not appt_df.empty:
         appt_df_display = appt_df.iloc[::-1].reset_index(drop=True)
         appt_df_display.index = appt_df_display.index + 1
         st.dataframe(appt_df_display, use_container_width=True)
     else:
         st.info("No appointments recorded yet.")
-
-    # --- Form to add new appointment ---
-    with st.form("appt_form", clear_on_submit=True):
-        appt_name = st.text_input("Patient Name")  
-        appt_date = st.date_input("Appointment Date")  
-        appt_time = st.text_input("Appointment Time (manual)")  
-        appt_payment = st.text_input("Payment")  
-        submitted = st.form_submit_button("Save Appointment")
-        if submitted:
-            if appt_name and appt_date and appt_payment:
-                new_appt = pd.DataFrame([{
-                    "Appt_Name": appt_name,
-                    "Appt_Date": str(appt_date),
-                    "Appt_Time": appt_time,
-                    "Appt_Payment": appt_payment
-                }])
-            try:
-                sheet.append_rows(new_appt.values.tolist(), value_input_option="RAW")
-                st.success("✅ Appointment saved to Google Sheets.")
-            except Exception as e:
-                st.error(f"❌ Failed to save appointment: {e}")
 
 # ----------------- NEW PATIENT -----------------
 elif menu == "🌟 New Patient":
