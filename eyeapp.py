@@ -6,6 +6,7 @@ from fpdf import FPDF
 import tempfile
 from google.oauth2.service_account import Credentials
 
+# ---------- PDF generation ----------
 def generate_patient_pdf(record):
     pdf = FPDF()
     pdf.add_page()
@@ -30,21 +31,36 @@ def get_sheet():
         st.secrets["gcp_service_account"], scopes=scope
     )
     client = gspread.authorize(creds)
-    return client.open_by_key(SHEET_ID).sheet1
+    sheet = client.open_by_key(SHEET_ID).sheet1
+
+    # Ensure header row is unique
+    headers = sheet.row_values(1)
+    if len(headers) != len(set(headers)):
+        st.error("❌ Google Sheet headers are not unique! Please fix them manually.")
+    return sheet
+
 sheet = get_sheet()
 
 # ---------- Append-only push to Google Sheets ----------
-def push_to_sheet_append(df):
+def push_to_sheet_append(new_df):
+    """
+    Appends only the new row(s) to Google Sheet.
+    new_df: pandas DataFrame with the same columns as the Sheet.
+    """
     try:
-        df = df.fillna("").astype(str)
-        existing_records = sheet.get_all_records()
-        existing_df = pd.DataFrame(existing_records)
-        if not existing_df.empty:
-            new_rows = df.merge(existing_df, how="outer", indicator=True).query('_merge=="left_only"').drop('_merge', axis=1)
-        else:
-            new_rows = df
-        if not new_rows.empty:
-            sheet.append_rows(new_rows.values.tolist(), value_input_option="RAW")
+        # Clean column names
+        new_df = new_df.rename(lambda x: x.strip(), axis=1).fillna("").astype(str)
+
+        if new_df.columns.duplicated().any():
+            st.error("❌ Duplicate column names in dataframe: " +
+                     ", ".join(new_df.columns[new_df.columns.duplicated()]))
+            return False
+
+        rows_to_append = new_df.values.tolist()
+        if not rows_to_append:
+            return False
+
+        sheet.append_rows(rows_to_append, value_input_option="RAW")
         return True
     except Exception as e:
         st.error(f"❌ Google Sheets append failed: {e}")
@@ -65,7 +81,7 @@ if not os.path.exists(file_path):
 
 df = pd.read_csv(file_path)
 
-# ====== Safely add new columns if missing ======
+# Safely add missing columns
 for col in ["VAcc", "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]:
     if col not in df.columns:
         df[col] = ""
@@ -93,14 +109,16 @@ if menu == "📅 Appointments":
                 "Diagnosis": "", "Treatment": "", "Plan": "",
                 "Appt_Name": appt_name, "Appt_Date": str(appt_date), "Appt_Time": appt_time, "Appt_Payment": appt_payment
             }])
+
+            # Save locally
             df = pd.concat([df, new_appt], ignore_index=True)
-            try:
-                df.to_csv(file_path, index=False)
-                st.success("✅ Appointment saved locally.")
-                push_to_sheet_append(df)
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ Save failed: {e}")
+            df.to_csv(file_path, index=False)
+            st.success("✅ Appointment saved locally.")
+
+            # Push only new row to Google Sheets
+            if push_to_sheet_append(new_appt):
+                st.success("✅ Appointment synced to Google Sheets.")
+            st.rerun()
 
     st.subheader("📋 All Appointments")
     appt_df = df[["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]].dropna(how="all")
@@ -111,7 +129,7 @@ if menu == "📅 Appointments":
     else:
         st.info("No appointments recorded yet.")
 
-# ========== NEW PATIENT SECTION ==========
+# ========== NEW PATIENT ==========
 elif menu == "🌟 New Patient":
     tabs = st.tabs(["📋 Pre-Visit Entry", "⏳ Waiting List / Doctor update"])
 
@@ -135,7 +153,7 @@ elif menu == "🌟 New Patient":
                 phone = st.text_input("Phone Number")
             with col2:
                 va = st.text_input("VA: RA / LA")
-                vacc = st.text_input("VAcc: RA / LA")  # new field
+                vacc = st.text_input("VAcc: RA / LA")
                 bcva_ra = st.text_input("BCVA: RA")
                 bcva_la = st.text_input("BCVA: LA")
                 iop = st.text_input("IOP: RA / LA")
@@ -152,14 +170,14 @@ elif menu == "🌟 New Patient":
                     "Diagnosis": "", "Treatment": "", "Plan": "",
                     "Appt_Name": "", "Appt_Date": "", "Appt_Time": "", "Appt_Payment": ""
                 }])
+
                 df = pd.concat([df, new_entry], ignore_index=True)
-                try:
-                    df.to_csv(file_path, index=False)
-                    st.success("✅ Data saved locally.")
-                    push_to_sheet_append(df)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Save failed: {e}")
+                df.to_csv(file_path, index=False)
+                st.success("✅ Data saved locally.")
+
+                if push_to_sheet_append(new_entry):
+                    st.success("✅ Patient data synced to Google Sheets.")
+                st.rerun()
 
     # --- Waiting List ---
     with tabs[1]:
@@ -195,22 +213,20 @@ elif menu == "🌟 New Patient":
                         df.loc[idx_df, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
                             ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
                         ]
-                        try:
-                            df.to_csv(file_path, index=False)
-                            st.success("✅ Updated locally.")
-                            push_to_sheet_append(df)
-                            patient_record = df.loc[idx_df].to_dict()
-                            pdf_path = generate_patient_pdf(patient_record)
-                            with open(pdf_path, "rb") as f:
-                                pdf_bytes = f.read()
-                                st.download_button(
-                                    label=f"🖨️ Download PDF Summary for Patient {row['Patient_ID']}",
-                                    data=pdf_bytes,
-                                    file_name=f"Patient_{row['Patient_ID']}_summary.pdf",
-                                    mime="application/pdf",
-                                )
-                        except Exception as e:
-                            st.error(f"❌ Update failed: {e}")
+                        df.to_csv(file_path, index=False)
+                        st.success("✅ Updated locally.")
+
+                        patient_record = df.loc[idx_df].to_dict()
+                        pdf_path = generate_patient_pdf(patient_record)
+                        with open(pdf_path, "rb") as f:
+                            pdf_bytes = f.read()
+                            st.download_button(
+                                label=f"🖨️ Download PDF Summary for Patient {row['Patient_ID']}",
+                                data=pdf_bytes,
+                                file_name=f"Patient_{row['Patient_ID']}_summary.pdf",
+                                mime="application/pdf",
+                            )
+                        push_to_sheet_append(df.loc[[idx_df]])
 
 # ========== VIEW DATA ==========
 elif menu == "📊 View Data":
