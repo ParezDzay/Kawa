@@ -18,20 +18,6 @@ def generate_patient_pdf(record):
     pdf.output(temp_file.name)
     return temp_file.name
 
-# ---------- Password Protection ----------
-PASSWORD = "1977"
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-if not st.session_state.authenticated:
-    pwd = st.text_input("Enter password", type="password")
-    login_button = st.button("Login")
-    if login_button:
-        if pwd == PASSWORD:
-            st.session_state.authenticated = True
-        else:
-            st.error("Incorrect password")
-    st.stop()
-
 # ---------- Google Sheets Setup ----------
 SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
 @st.cache_resource
@@ -119,7 +105,7 @@ if menu == "📅 Appointments":
     st.subheader("📋 All Appointments")
     appt_df = df[["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]].dropna(how="all")
     if not appt_df.empty:
-        appt_df_display = appt_df.reset_index(drop=True)
+        appt_df_display = appt_df.iloc[::-1].reset_index(drop=True)
         appt_df_display.index = appt_df_display.index + 1
         st.dataframe(appt_df_display, use_container_width=True)
     else:
