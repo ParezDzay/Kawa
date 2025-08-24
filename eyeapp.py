@@ -86,22 +86,20 @@ if menu == "📅 Appointments":
         st.info("No appointments recorded yet.")
 
     # --- Form to add new appointment ---
-with st.form("appt_form", clear_on_submit=True):
-    appt_name = st.text_input("Patient Name")  
-    appt_date = st.date_input("Appointment Date")  
-    appt_time = st.text_input("Appointment Time (manual)")  
-    appt_payment = st.text_input("Payment")  
-
-    submitted = st.form_submit_button("Save Appointment")
-
-    if submitted:
-        if appt_name and appt_date and appt_payment:
-            new_appt = pd.DataFrame([{
-                "Appt_Name": appt_name,
-                "Appt_Date": str(appt_date),
-                "Appt_Time": appt_time,
-                "Appt_Payment": appt_payment
-            }])
+    with st.form("appt_form", clear_on_submit=True):
+        appt_name = st.text_input("Patient Name")  
+        appt_date = st.date_input("Appointment Date")  
+        appt_time = st.text_input("Appointment Time (manual)")  
+        appt_payment = st.text_input("Payment")  
+        submitted = st.form_submit_button("Save Appointment")
+        if submitted:
+            if appt_name and appt_date and appt_payment:
+                new_appt = pd.DataFrame([{
+                    "Appt_Name": appt_name,
+                    "Appt_Date": str(appt_date),
+                    "Appt_Time": appt_time,
+                    "Appt_Payment": appt_payment
+                }])
             try:
                 sheet.append_rows(new_appt.values.tolist(), value_input_option="RAW")
                 st.success("✅ Appointment saved to Google Sheets.")
