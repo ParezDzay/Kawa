@@ -38,17 +38,21 @@ sheet = get_sheet()
 # ----------------- Append-only push -----------------
 def push_to_sheet_append(df):
     try:
-        df = df.fillna("").astype(str)
+        # Replace NaN with empty strings to avoid JSON issues
+        df_clean = df.fillna("").astype(str)
         existing_records = sheet.get_all_records()
         existing_df = pd.DataFrame(existing_records)
-        # Append only new rows (avoiding duplicates)
+
+        # Only append truly new rows
         if not existing_df.empty:
-            combined = pd.concat([existing_df, df], ignore_index=True)
-            new_rows = combined.drop_duplicates(keep='first').tail(len(df))
+            combined = pd.concat([existing_df, df_clean], ignore_index=True)
+            new_rows = combined.drop_duplicates(keep='first').tail(len(df_clean))
         else:
-            new_rows = df
+            new_rows = df_clean
+
         if not new_rows.empty:
             sheet.append_rows(new_rows.values.tolist(), value_input_option="RAW")
+
         return True
     except Exception as e:
         st.error(f"❌ Google Sheets append failed: {e}")
@@ -58,22 +62,10 @@ def push_to_sheet_append(df):
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 file_path = "eye_data.csv"
 
-# ----------------- Load Existing Data -----------------
-try:
-    records = sheet.get_all_records()
-    if records:
-        df = pd.DataFrame(records)
-    elif os.path.exists(file_path):
-        df = pd.read_csv(file_path)
-    else:
-        df = pd.DataFrame(columns=[
-            "Date","Patient_ID","Full_Name","Age","Gender","Phone_Number",
-            "Visual_Acuity","VAcc","IOP","Medication","AC","Fundus","U/S",
-            "OCT/FFA","Diagnosis","Treatment","Plan",
-            "Appt_Name","Appt_Date","Appt_Time","Appt_Payment"
-        ])
-except Exception as e:
-    st.error(f"❌ Failed to load data: {e}")
+# ----------------- Load Local CSV -----------------
+if os.path.exists(file_path):
+    df = pd.read_csv(file_path)
+else:
     df = pd.DataFrame(columns=[
         "Date","Patient_ID","Full_Name","Age","Gender","Phone_Number",
         "Visual_Acuity","VAcc","IOP","Medication","AC","Fundus","U/S",
@@ -113,7 +105,7 @@ if menu == "📅 Appointments":
             try:
                 df.to_csv(file_path, index=False)
                 st.success("✅ Appointment saved locally.")
-                push_to_sheet_append(df)
+                push_to_sheet_append(new_appt)  # Only append new row, not entire df
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Save failed: {e}")
@@ -172,7 +164,7 @@ elif menu == "🌟 New Patient":
                 try:
                     df.to_csv(file_path, index=False)
                     st.success("✅ Data saved locally.")
-                    push_to_sheet_append(df)
+                    push_to_sheet_append(new_entry)
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Save failed: {e}")
@@ -214,7 +206,7 @@ elif menu == "🌟 New Patient":
                         try:
                             df.to_csv(file_path, index=False)
                             st.success("✅ Updated locally.")
-                            push_to_sheet_append(df)
+                            push_to_sheet_append(df.iloc[[idx_df]])  # append only updated row
                             patient_record = df.loc[idx_df].to_dict()
                             pdf_path = generate_patient_pdf(patient_record)
                             with open(pdf_path,"rb") as f:
@@ -231,7 +223,7 @@ elif menu == "🌟 New Patient":
 # ----------------- VIEW DATA -----------------
 elif menu == "📊 View Data":
     st.title("📊 Patient Records")
-    tab1, tab2 = st.tabs(["📋 All Records","🗕️ Download CSV"])
+    tab1,tab2 = st.tabs(["📋 All Records","🗕️ Download CSV"])
     with tab1:
         st.dataframe(df, use_container_width=True)
     with tab2:
