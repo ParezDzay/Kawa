@@ -35,12 +35,10 @@ def get_sheet():
 
 # ----------------- Push to Google Sheet -----------------
 def push_to_sheet_append(df):
-    """Sync all past and new appointments to Google Sheet."""
+    """Sync all past and new appointments to Google Sheet (4 columns only)."""
     try:
         sheet = get_sheet()
         headers = ["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"]
-
-        # Extract only appointment columns, drop rows where all are empty
         appt_df = df[headers].dropna(how="all")
 
         # Clear sheet and write headers
