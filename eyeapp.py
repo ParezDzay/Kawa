@@ -106,7 +106,7 @@ if menu == "📅 Appointments":
     st.subheader("📋 All Appointments")
     appt_df = df[["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]].dropna(how="all")
     if not appt_df.empty:
-        appt_df_display = appt_df.reset_index(drop=True)
+        appt_df_display = appt_df.iloc[::-1].reset_index(drop=True)
         appt_df_display.index = appt_df_display.index + 1
         st.dataframe(appt_df_display, use_container_width=True)
     else:
