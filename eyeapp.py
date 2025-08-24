@@ -34,22 +34,18 @@ def get_sheet():
     sheet = client.open_by_key(SHEET_ID).sheet1
     headers = sheet.row_values(1)
     if len(headers) != len(set(headers)):
-        st.error("❌ Google Sheet headers are not unique! Please fix them manually.")
+        st.error("❌ Google Sheet headers are not unique! Please fix manually.")
     return sheet
 
 sheet = get_sheet()
 
 # ---------- Append-only push to Google Sheets ----------
 def push_to_sheet_append(new_df):
-    """
-    Appends only the new row(s) to Google Sheet.
-    """
+    """Append only new rows to Google Sheet reliably."""
     try:
-        new_df = new_df.rename(lambda x: x.strip(), axis=1).fillna("").astype(str)
+        # Fill NaN and convert all to string
+        new_df = new_df.fillna("").astype(str)
         sheet_columns = sheet.row_values(1)
-        if len(sheet_columns) != len(set(sheet_columns)):
-            st.error("❌ Google Sheet headers are not unique! Please fix them manually.")
-            return False
 
         # Ensure all columns exist
         for col in sheet_columns:
@@ -62,9 +58,10 @@ def push_to_sheet_append(new_df):
             return False
 
         sheet.append_rows(rows_to_append, value_input_option="RAW")
+        st.success("✅ Synced to Google Sheets")
         return True
     except Exception as e:
-        st.error(f"❌ Google Sheets append failed: {e}")
+        st.error(f"❌ Google Sheets push failed: {e}")
         return False
 
 # ---------- Page config ----------
@@ -74,16 +71,16 @@ file_path = "eye_data.csv"
 # Initialize CSV if missing
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
-        "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Visual_Acuity", "VAcc", "IOP", "Medication", "AC", "Fundus", "U/S",
-        "OCT/FFA", "Diagnosis", "Treatment", "Plan",
-        "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"
-    ]).to_csv(file_path, index=False)
+        "Date","Patient_ID","Full_Name","Age","Gender","Phone_Number",
+        "Visual_Acuity","VAcc","IOP","Medication","AC","Fundus","U/S",
+        "OCT/FFA","Diagnosis","Treatment","Plan",
+        "Appt_Name","Appt_Date","Appt_Time","Appt_Payment"
+    ]).to_csv(file_path,index=False)
 
 df = pd.read_csv(file_path)
 
 # Safely add missing columns
-for col in ["VAcc", "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]:
+for col in ["VAcc","Appt_Name","Appt_Date","Appt_Time","Appt_Payment"]:
     if col not in df.columns:
         df[col] = ""
 
@@ -95,9 +92,8 @@ if "selected_waiting_id" not in st.session_state:
 menu = st.sidebar.radio("📁 Menu", ["📅 Appointments", "🌟 New Patient", "📊 View Data"], index=0)
 
 # ========== APPOINTMENTS ==========
-if menu == "📅 Appointments":
+if menu=="📅 Appointments":
     st.title("📅 Appointment Records")
-
     with st.form("appt_form", clear_on_submit=True):
         appt_name = st.text_input("Patient Name")
         appt_date = st.date_input("Appointment Date")
@@ -105,50 +101,47 @@ if menu == "📅 Appointments":
         appt_payment = st.text_input("Payment")
         if st.form_submit_button("Save Appointment"):
             new_appt = pd.DataFrame([{
-                "Date": "", "Patient_ID": "", "Full_Name": "", "Age": "", "Gender": "", "Phone_Number": "",
-                "Visual_Acuity": "", "VAcc": "", "IOP": "", "Medication": "", "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
-                "Diagnosis": "", "Treatment": "", "Plan": "",
-                "Appt_Name": appt_name, "Appt_Date": str(appt_date), "Appt_Time": appt_time, "Appt_Payment": appt_payment
+                "Date":"","Patient_ID":"","Full_Name":"","Age":"","Gender":"","Phone_Number":"",
+                "Visual_Acuity":"","VAcc":"","IOP":"","Medication":"","AC":"","Fundus":"","U/S":"","OCT/FFA":"",
+                "Diagnosis":"","Treatment":"","Plan":"",
+                "Appt_Name":appt_name,"Appt_Date":str(appt_date),"Appt_Time":appt_time,"Appt_Payment":appt_payment
             }])
-
-            df = pd.concat([df, new_appt], ignore_index=True)
-            df.to_csv(file_path, index=False)
-            st.success("✅ Appointment saved locally.")
-
-            if push_to_sheet_append(new_appt):
-                st.success("✅ Appointment synced to Google Sheets.")
+            df = pd.concat([df,new_appt],ignore_index=True)
+            df.to_csv(file_path,index=False)
+            st.success("✅ Appointment saved locally")
+            push_to_sheet_append(new_appt)
             st.rerun()
 
     st.subheader("📋 All Appointments")
-    appt_df = df[["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]].dropna(how="all")
+    appt_df = df[["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"]].dropna(how="all")
     if not appt_df.empty:
         appt_df_display = appt_df.reset_index(drop=True)
-        appt_df_display.index = appt_df_display.index + 1
-        st.dataframe(appt_df_display, use_container_width=True)
+        appt_df_display.index = appt_df_display.index+1
+        st.dataframe(appt_df_display,use_container_width=True)
     else:
         st.info("No appointments recorded yet.")
 
 # ========== NEW PATIENT ==========
-elif menu == "🌟 New Patient":
-    tabs = st.tabs(["📋 Pre-Visit Entry", "⏳ Waiting List / Doctor update"])
+elif menu=="🌟 New Patient":
+    tabs = st.tabs(["📋 Pre-Visit Entry","⏳ Waiting List / Doctor update"])
 
     # --- Pre-Visit Entry ---
     with tabs[0]:
         st.title("📋 Pre-Visit Entry")
         try:
-            last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\\d+)')[0].astype(int).max()
-            next_id = f"{last_id + 1:04d}"
+            last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\d+)')[0].astype(int).max()
+            next_id = f"{last_id+1:04d}"
         except:
-            next_id = "0001"
+            next_id="0001"
         st.markdown(f"**Generated Patient ID:** `{next_id}`")
 
         with st.form("pre_visit_form", clear_on_submit=True):
-            col1, col2 = st.columns(2)
+            col1,col2 = st.columns(2)
             with col1:
                 date = st.date_input("Date")
                 full_name = st.text_input("Full Name")
-                age = st.number_input("Age", min_value=0, max_value=120)
-                gender = st.selectbox("Gender", ["Male", "Female", "Child"])
+                age = st.number_input("Age",min_value=0,max_value=120)
+                gender = st.selectbox("Gender",["Male","Female","Child"])
                 phone = st.text_input("Phone Number")
             with col2:
                 va = st.text_input("VA: RA / LA")
@@ -161,94 +154,70 @@ elif menu == "🌟 New Patient":
             if st.form_submit_button("Submit"):
                 visual_acuity = f"RA ({bcva_ra}) ; LA ({bcva_la})"
                 new_entry = pd.DataFrame([{
-                    "Date": str(date), "Patient_ID": next_id, "Full_Name": full_name, "Age": age,
-                    "Gender": gender, "Phone_Number": phone,
-                    "Visual_Acuity": visual_acuity, "VAcc": vacc,
-                    "IOP": iop, "Medication": medication,
-                    "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
-                    "Diagnosis": "", "Treatment": "", "Plan": "",
-                    "Appt_Name": "", "Appt_Date": "", "Appt_Time": "", "Appt_Payment": ""
+                    "Date":str(date),"Patient_ID":next_id,"Full_Name":full_name,"Age":age,
+                    "Gender":gender,"Phone_Number":phone,
+                    "Visual_Acuity":visual_acuity,"VAcc":vacc,"IOP":iop,"Medication":medication,
+                    "AC":"","Fundus":"","U/S":"","OCT/FFA":"",
+                    "Diagnosis":"","Treatment":"","Plan":"",
+                    "Appt_Name":"","Appt_Date":"","Appt_Time":"","Appt_Payment":""
                 }])
-
-                df = pd.concat([df, new_entry], ignore_index=True)
-                df.to_csv(file_path, index=False)
-                st.success("✅ Data saved locally.")
-
-                # Push to Google Sheet
-                sheet_columns = sheet.row_values(1)
-                for col in sheet_columns:
-                    if col not in new_entry.columns:
-                        new_entry[col] = ""
-                new_entry = new_entry[sheet_columns]
-
-                if push_to_sheet_append(new_entry):
-                    st.success("✅ Patient data synced to Google Sheets.")
+                df = pd.concat([df,new_entry],ignore_index=True)
+                df.to_csv(file_path,index=False)
+                st.success("✅ Data saved locally")
+                push_to_sheet_append(new_entry)
                 st.rerun()
 
     # --- Waiting List ---
     with tabs[1]:
         st.title("⏳ Patients Waiting for Doctor Update")
-        df = df.fillna("")
-        waiting_df = df[
-            (df["Diagnosis"] == "") &
-            (df["Treatment"] == "") &
-            (df["Plan"] == "") &
-            (df["Appt_Name"] == "")
-        ]
+        df=df.fillna("")
+        waiting_df=df[(df["Diagnosis"]=="") & (df["Treatment"]=="") & (df["Plan"]=="") & (df["Appt_Name"]=="")]
         if waiting_df.empty:
             st.success("🎉 No patients are currently waiting.")
         else:
-            for idx, row in waiting_df.iterrows():
+            for idx,row in waiting_df.iterrows():
                 with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
-                    selected = df[df["Patient_ID"] == row["Patient_ID"]]
+                    selected = df[df["Patient_ID"]==row["Patient_ID"]]
                     with st.form(f"form_{row['Patient_ID']}_{idx}", clear_on_submit=True):
-                        col1, col2 = st.columns(2)
+                        col1,col2 = st.columns(2)
                         with col1:
-                            ac = st.text_area("AC", height=100)
-                            fundus = st.text_area("Fundus", height=100)
+                            ac = st.text_area("AC",height=100)
+                            fundus = st.text_area("Fundus",height=100)
                             us = st.text_input("U/S")
                             oct_ffa = st.text_input("OCT/FFA")
                         with col2:
-                            diagnosis = st.text_input("Diagnosis", value=selected["Diagnosis"].values[0])
+                            diagnosis = st.text_input("Diagnosis",value=selected["Diagnosis"].values[0])
                             treatment = st.text_input("Treatment")
                             plan = st.text_input("Plan")
                         submitted = st.form_submit_button("Update Record")
 
                     if submitted:
-                        idx_df = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
-                        df.loc[idx_df, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
-                            ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
+                        idx_df = df[df["Patient_ID"]==row["Patient_ID"]].index[0]
+                        df.loc[idx_df,["AC","Fundus","U/S","OCT/FFA","Diagnosis","Treatment","Plan"]] = [
+                            ac.strip(),fundus.strip(),us.strip(),oct_ffa.strip(),diagnosis.strip(),treatment.strip(),plan.strip()
                         ]
-                        df.to_csv(file_path, index=False)
-                        st.success("✅ Updated locally.")
+                        df.to_csv(file_path,index=False)
+                        st.success("✅ Updated locally")
 
-                        # Prepare row for Google Sheets
-                        patient_record = df.loc[[idx_df]]
-                        sheet_columns = sheet.row_values(1)
-                        for col in sheet_columns:
-                            if col not in patient_record.columns:
-                                patient_record[col] = ""
-                        patient_record = patient_record[sheet_columns]
+                        patient_record=df.loc[[idx_df]]
+                        push_to_sheet_append(patient_record)
 
-                        if push_to_sheet_append(patient_record):
-                            st.success("✅ Updated patient synced to Google Sheets.")
-
-                        pdf_path = generate_patient_pdf(patient_record.iloc[0].to_dict())
-                        with open(pdf_path, "rb") as f:
-                            pdf_bytes = f.read()
+                        pdf_path=generate_patient_pdf(patient_record.iloc[0].to_dict())
+                        with open(pdf_path,"rb") as f:
+                            pdf_bytes=f.read()
                             st.download_button(
                                 label=f"🖨️ Download PDF Summary for Patient {row['Patient_ID']}",
                                 data=pdf_bytes,
                                 file_name=f"Patient_{row['Patient_ID']}_summary.pdf",
-                                mime="application/pdf",
+                                mime="application/pdf"
                             )
 
 # ========== VIEW DATA ==========
-elif menu == "📊 View Data":
+elif menu=="📊 View Data":
     st.title("📊 Patient Records")
-    tab1, tab2 = st.tabs(["📋 All Records", "🗕️ Download CSV"])
+    tab1,tab2 = st.tabs(["📋 All Records","🗕️ Download CSV"])
     with tab1:
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df,use_container_width=True)
     with tab2:
         st.download_button(
             label="⬇️ Download All Records",
