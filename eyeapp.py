@@ -41,8 +41,10 @@ def push_to_sheet_append(df):
         df = df.fillna("").astype(str)
         existing_records = sheet.get_all_records()
         existing_df = pd.DataFrame(existing_records)
+        # Append only new rows (avoiding duplicates)
         if not existing_df.empty:
-            new_rows = df.merge(existing_df, how="outer", indicator=True).query('_merge=="left_only"').drop('_merge', axis=1)
+            combined = pd.concat([existing_df, df], ignore_index=True)
+            new_rows = combined.drop_duplicates(keep='first').tail(len(df))
         else:
             new_rows = df
         if not new_rows.empty:
@@ -229,7 +231,7 @@ elif menu == "🌟 New Patient":
 # ----------------- VIEW DATA -----------------
 elif menu == "📊 View Data":
     st.title("📊 Patient Records")
-    tab1,tab2 = st.tabs(["📋 All Records","🗕️ Download CSV"])
+    tab1, tab2 = st.tabs(["📋 All Records","🗕️ Download CSV"])
     with tab1:
         st.dataframe(df, use_container_width=True)
     with tab2:
