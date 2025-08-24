@@ -35,14 +35,26 @@ def get_sheet():
 
 # ----------------- Push to Google Sheet -----------------
 def push_to_sheet_append(df):
-    """Append the latest row from df to Google Sheet."""
+    """Sync all past and new appointments to Google Sheet."""
     try:
         sheet = get_sheet()
-        # get the last row (newly added record)
-        last_row = df.iloc[[-1]].values.tolist()[0]
-        sheet.append_row(last_row)
+        headers = ["Appt_Name","Appt_Date","Appt_Time","Appt_Payment"]
+
+        # Extract only appointment columns, drop rows where all are empty
+        appt_df = df[headers].dropna(how="all")
+
+        # Clear sheet and write headers
+        sheet.clear()
+        sheet.append_row(headers)
+
+        # Append all rows one by one
+        for _, row in appt_df.iterrows():
+            sheet.append_row(row.tolist())
+
+        st.success("✅ All appointments synced to Google Sheet.")
+
     except Exception as e:
-        st.error(f"❌ Failed to update Google Sheet: {e}")
+        st.error(f"❌ Failed to sync Google Sheet: {e}")
 
 sheet = get_sheet()
 
@@ -93,7 +105,7 @@ if menu == "📅 Appointments":
             try:
                 df.to_csv(file_path, index=False)
                 st.success("✅ Appointment saved locally.")
-                push_to_sheet_append(df)
+                push_to_sheet_append(df)  # Sync all appointments
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Save failed: {e}")
