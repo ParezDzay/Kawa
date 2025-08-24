@@ -62,8 +62,11 @@ if not os.path.exists(file_path):
         "OCT/FFA", "Diagnosis", "Treatment", "Plan",
         "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"
     ]).to_csv(file_path, index=False)
-
-df = pd.read_csv(file_path)
+    
+    records = sheet.get_all_records() 
+    df = pd.DataFrame(records)   
+    if df.empty and os.path.exists(file_path):     
+    df = pd.read_csv(file_path)
 
 # ====== Safely add new columns if missing ======
 for col in ["VAcc", "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]:
