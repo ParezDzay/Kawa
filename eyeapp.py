@@ -86,12 +86,16 @@ if menu == "📅 Appointments":
         st.info("No appointments recorded yet.")
 
     # --- Form to add new appointment ---
-    with st.form("appt_form", clear_on_submit=True):
-        appt_name = st.text_input("Appt_Name")
-        appt_date = st.date_input("Appt_Date")
-        appt_time = st.text_input("Appt_Time (manual)")
-        appt_payment = st.text_input("Appt_Payment")
-        if st.form_submit_button("Save Appointment"):
+with st.form("appt_form", clear_on_submit=True):
+    appt_name = st.text_input("Patient Name")  
+    appt_date = st.date_input("Appointment Date")  
+    appt_time = st.text_input("Appointment Time (manual)")  
+    appt_payment = st.text_input("Payment")  
+
+    submitted = st.form_submit_button("Save Appointment")
+
+    if submitted:
+        if appt_name and appt_date and appt_payment:
             new_appt = pd.DataFrame([{
                 "Appt_Name": appt_name,
                 "Appt_Date": str(appt_date),
