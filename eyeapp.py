@@ -21,21 +21,6 @@ def generate_patient_pdf(record):
     pdf.output(temp_file.name)
     return temp_file.name
 
-# ---------- Password Protection ----------
-PASSWORD = "1977"
-
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-if not st.session_state.authenticated:
-    pwd = st.text_input("Enter password", type="password")
-    login_button = st.button("Login")
-    if login_button:
-        if pwd == PASSWORD:
-            st.session_state.authenticated = True
-        else:
-            st.error("Incorrect password")
-    st.stop()
 
 # ---------- Google Sheets Setup ----------
 SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
