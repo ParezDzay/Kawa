@@ -33,6 +33,17 @@ def get_sheet():
     client = gspread.authorize(creds)
     return client.open_by_key(SHEET_ID).sheet1
 
+# ----------------- Push to Google Sheet -----------------
+def push_to_sheet_append(df):
+    """Append the latest row from df to Google Sheet."""
+    try:
+        sheet = get_sheet()
+        # get the last row (newly added record)
+        last_row = df.iloc[[-1]].values.tolist()[0]
+        sheet.append_row(last_row)
+    except Exception as e:
+        st.error(f"❌ Failed to update Google Sheet: {e}")
+
 sheet = get_sheet()
 
 # ----------------- Page Config -----------------
