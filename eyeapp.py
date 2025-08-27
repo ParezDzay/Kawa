@@ -7,6 +7,7 @@ import tempfile
 from google.oauth2.service_account import Credentials
 from datetime import date, timedelta 
 
+# ---------- PDF Generator ----------
 def generate_patient_pdf(record):
     pdf = FPDF()
     pdf.add_page()
@@ -21,6 +22,7 @@ def generate_patient_pdf(record):
 
 # ---------- Google Sheets Setup ----------
 SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
+
 @st.cache_resource
 def get_sheet():
     scope = [
@@ -32,9 +34,10 @@ def get_sheet():
     )
     client = gspread.authorize(creds)
     return client.open_by_key(SHEET_ID).sheet1
+
 sheet = get_sheet()
 
-# ---------- Append-only push to Google Sheets ----------
+# ---------- Append to Google Sheets ----------
 def push_to_sheet_append(df):
     try:
         df = df.fillna("").astype(str)
@@ -48,43 +51,42 @@ def push_to_sheet_append(df):
 file_path = "eye_data.csv"
 COLUMNS = ["Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"]
 
-# Initialize CSV if missing OR fix mismatched headers
+# Initialize CSV if missing
 if not os.path.exists(file_path):
     pd.DataFrame(columns=COLUMNS).to_csv(file_path, index=False)
 
+# ---------- Local Load & Save ----------
 def load_bookings():
     if os.path.exists(file_path):
         df = pd.read_csv(file_path)
+
+        # Auto-rename old headers if found
+        rename_map = {
+            "Appt_Name": "Patient Name",
+            "Appt_Date": "Appointment Date",
+            "Appt_Time": "Appointment Time (manual)",
+            "Appt_Payment": "Payment"
+        }
+        df.rename(columns=rename_map, inplace=True)
+
         # Ensure all required columns exist
         for col in COLUMNS:
             if col not in df.columns:
                 df[col] = ""
+
         return df[COLUMNS]  # enforce correct order
     else:
         return pd.DataFrame(columns=COLUMNS)
 
 def save_bookings(df, new_row=None):
-    """Save locally and push new row to Google Sheets if provided"""
-    # Keep only the expected columns
-    df = df[COLUMNS]
+    """Save locally (CSV) and push new row to Google Sheets if provided"""
     df.to_csv(file_path, index=False)
+
     if new_row is not None:
-        push_to_sheet_append(pd.DataFrame([new_row], columns=COLUMNS))
+        row_df = pd.DataFrame([new_row], columns=COLUMNS)
+        push_to_sheet_append(row_df)
 
-# ---------- Local Save / Load ----------
-def load_bookings():
-    if os.path.exists(file_path):
-        return pd.read_csv(file_path)
-    else:
-        return pd.DataFrame(columns=["Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"])
-
-def save_bookings(df, new_row=None):
-    """Save locally and push new row to Google Sheets if provided"""
-    df.to_csv(file_path, index=False)
-    if new_row is not None:
-        push_to_sheet_append(pd.DataFrame([new_row]))
-
-# ---------- Streamlit Page Setup ----------
+# ---------- Streamlit Page ----------
 st.set_page_config(page_title="Global Eye Center (Appointments)", layout="wide")
 st.title("Global Eye Center (Appointments)")
 
@@ -95,8 +97,8 @@ tabs = st.tabs(["📌 Upcoming Appointments", "📂 Appointment Archive"])
 st.sidebar.header("Add New Appointment")
 patient_name = st.sidebar.text_input("Patient Name")
 appt_date = st.sidebar.date_input("Appointment Date", value=date.today())
-appt_time = st.sidebar.text_input("Appointment Time (manual)")
-payment = st.sidebar.text_input("Payment")
+appt_time = st.sidebar.text_input("Appointment Time (manual)", placeholder="HH:MM")
+payment = st.sidebar.text_input("Payment", placeholder="e.g., Cash / Card / None")
 
 if st.sidebar.button("💾 Save Appointment"):
     if not patient_name:
@@ -118,6 +120,11 @@ if st.sidebar.button("💾 Save Appointment"):
 
 # ---------- Load Bookings ----------
 bookings = load_bookings()
+
+# Ensure Appointment Date column exists
+if "Appointment Date" not in bookings.columns:
+    bookings["Appointment Date"] = None
+
 bookings["Appointment Date"] = pd.to_datetime(bookings["Appointment Date"], errors="coerce")
 yesterday = pd.Timestamp(date.today() - timedelta(days=1))
 
