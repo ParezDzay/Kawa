@@ -96,7 +96,7 @@ st.sidebar.header("Add New Appointment")
 patient_name = st.sidebar.text_input("Patient Name")
 appt_date = st.sidebar.date_input("Appointment Date", value=date.today())
 appt_time = st.sidebar.text_input("Appointment Time (manual)", placeholder="HH:MM")
-payment = st.sidebar.text_input("Payment", placeholder="e.g., Cash / Card / None")
+payment = st.sidebar.text_input("Payment")
 
 if st.sidebar.button("💾 Save Appointment"):
     if not patient_name:
