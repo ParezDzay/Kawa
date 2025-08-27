@@ -5,6 +5,7 @@ import gspread
 from fpdf import FPDF
 import tempfile
 from google.oauth2.service_account import Credentials
+from datetime import date, timedelta 
 
 def generate_patient_pdf(record):
     pdf = FPDF()
