@@ -19,26 +19,26 @@ def get_sheet():
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
-    # Load service account from Streamlit secrets
     creds = Credentials.from_service_account_info(
         st.secrets["gcp_service_account"], scopes=scope
     )
     client = gspread.authorize(creds)
     sheet = client.open_by_key(SHEET_ID).sheet1
 
-    # Fix duplicate headers if exist
+    # --- Check for duplicate headers ---
     headers = sheet.row_values(1)
     if len(headers) != len(set(headers)):
-        # rename duplicates by appending "_1", "_2", etc.
+        st.warning("Duplicate headers detected in Google Sheet, fixing automatically.")
         new_headers = []
         seen = {}
         for h in headers:
             if h in seen:
                 seen[h] += 1
-                new_headers.append(f"{h}_{seen[h]}")
+                new_headers.append(f"{h}_{seen[h]}")  # rename duplicates
             else:
                 seen[h] = 0
                 new_headers.append(h)
+        # Update header row in the sheet
         sheet.update("1:1", [new_headers])
     return sheet
 
