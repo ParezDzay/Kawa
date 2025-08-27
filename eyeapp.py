@@ -74,154 +74,67 @@ for col in ["VAcc", "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]:
 if "selected_waiting_id" not in st.session_state:
     st.session_state.selected_waiting_id = None
 
-# Sidebar menu
-menu = st.sidebar.radio("📁 Menu", ["📅 Appointments", "🌟 New Patient", "📊 View Data"], index=0)
 
-# ========== APPOINTMENTS ==========
-if menu == "📅 Appointments":
-    st.title("📅 Appointment Records")
+# ---------- Streamlit Page Setup ----------
+st.set_page_config(page_title="Global Eye Center (Appointments)", layout="wide")
+st.title("Global Eye Center (Appointments)")
 
-    with st.form("appt_form", clear_on_submit=True):
-        appt_name = st.text_input("Patient Name")
-        appt_date = st.date_input("Appointment Date")
-        appt_time = st.text_input("Appointment Time (manual)")
-        appt_payment = st.text_input("Payment")
-        if st.form_submit_button("Save Appointment"):
-            new_appt = pd.DataFrame([{
-                "Date": "", "Patient_ID": "", "Full_Name": "", "Age": "", "Gender": "", "Phone_Number": "",
-                "Visual_Acuity": "", "VAcc": "", "IOP": "", "Medication": "", "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
-                "Diagnosis": "", "Treatment": "", "Plan": "",
-                "Appt_Name": appt_name, "Appt_Date": str(appt_date), "Appt_Time": appt_time, "Appt_Payment": appt_payment
-            }])
-            df = pd.concat([df, new_appt], ignore_index=True)
-            try:
-                df.to_csv(file_path, index=False)
-                st.success("✅ Appointment saved locally.")
-                push_to_sheet_append(df)
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ Save failed: {e}")
+# ---------- Main Tabs ----------
+tabs = st.tabs(["📌 Upcoming Appointments", "📂 Appointment Archive"])
 
-    st.subheader("📋 All Appointments")
-    appt_df = df[["Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]].dropna(how="all")
-    if not appt_df.empty:
-        appt_df_display = appt_df.iloc[::-1].reset_index(drop=True)
-        appt_df_display.index = appt_df_display.index + 1
-        st.dataframe(appt_df_display, use_container_width=True)
+# ---------- Sidebar Form ----------
+st.sidebar.header("Add New Appointment")
+patient_name = st.sidebar.text_input("Patient Name")
+appt_date = st.sidebar.date_input("Appointment Date", value=date.today())
+appt_time = st.sidebar.text_input("Appointment Time (manual)", placeholder="HH:MM")
+payment = st.sidebar.text_input("Payment", placeholder="e.g., Cash / Card / None")
+
+if st.sidebar.button("💾 Save Appointment"):
+    if not patient_name:
+        st.sidebar.error("Patient Name is required.")
+    elif not appt_time:
+        st.sidebar.error("Appointment Time is required.")
     else:
-        st.info("No appointments recorded yet.")
+        df = load_bookings()
+        new_record = {
+            "Patient Name": patient_name.strip(),
+            "Appointment Date": appt_date.strftime("%Y-%m-%d"),
+            "Appointment Time (manual)": appt_time.strip(),
+            "Payment": payment.strip()
+        }
+        df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
+        save_bookings(df)
+        st.sidebar.success("Appointment saved successfully.")
+        safe_rerun()
 
-# ========== NEW PATIENT SECTION ==========
-elif menu == "🌟 New Patient":
-    tabs = st.tabs(["📋 Pre-Visit Entry", "⏳ Waiting List / Doctor update"])
+# ---------- Load Bookings ----------
+bookings = load_bookings()
+bookings["Appointment Date"] = pd.to_datetime(bookings["Appointment Date"], errors="coerce")
+yesterday = pd.Timestamp(date.today() - timedelta(days=1))
 
-    # --- Pre-Visit Entry ---
-    with tabs[0]:
-        st.title("📋 Pre-Visit Entry")
-        try:
-            last_id = df["Patient_ID"].dropna().astype(str).str.extract('(\\d+)')[0].astype(int).max()
-            next_id = f"{last_id + 1:04d}"
-        except:
-            next_id = "0001"
-        st.markdown(f"**Generated Patient ID:** `{next_id}`")
+# ---------- Upcoming Tab ----------
+with tabs[0]:
+    upcoming = bookings[bookings["Appointment Date"] > yesterday]
+    st.subheader("📌 Upcoming Appointments")
+    if upcoming.empty:
+        st.info("No upcoming appointments.")
+    else:
+        upcoming_disp = upcoming.sort_values("Appointment Date")
+        for d in upcoming_disp["Appointment Date"].dt.date.unique():
+            day_df = upcoming_disp[upcoming_disp["Appointment Date"].dt.date == d]
+            with st.expander(d.strftime("📅 %A, %d %B %Y")):
+                day_df_display = day_df[["Patient Name", "Appointment Time (manual)", "Payment"]].reset_index(drop=True)
+                day_df_display.index = range(1, len(day_df_display)+1)
+                st.dataframe(day_df_display, use_container_width=True)
 
-        with st.form("pre_visit_form", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            with col1:
-                date = st.date_input("Date")
-                full_name = st.text_input("Full Name")
-                age = st.number_input("Age", min_value=0, max_value=120)
-                gender = st.selectbox("Gender", ["Male", "Female", "Child"])
-                phone = st.text_input("Phone Number")
-            with col2:
-                va = st.text_input("VA: RA / LA")
-                vacc = st.text_input("VAcc: RA / LA")  # new field
-                bcva_ra = st.text_input("BCVA: RA")
-                bcva_la = st.text_input("BCVA: LA")
-                iop = st.text_input("IOP: RA / LA")
-                medication = st.text_input("Medication")
-
-            if st.form_submit_button("Submit"):
-                visual_acuity = f"RA ({bcva_ra}) ; LA ({bcva_la})"
-                new_entry = pd.DataFrame([{
-                    "Date": str(date), "Patient_ID": next_id, "Full_Name": full_name, "Age": age,
-                    "Gender": gender, "Phone_Number": phone,
-                    "Visual_Acuity": visual_acuity, "VAcc": vacc,
-                    "IOP": iop, "Medication": medication,
-                    "AC": "", "Fundus": "", "U/S": "", "OCT/FFA": "",
-                    "Diagnosis": "", "Treatment": "", "Plan": "",
-                    "Appt_Name": "", "Appt_Date": "", "Appt_Time": "", "Appt_Payment": ""
-                }])
-                df = pd.concat([df, new_entry], ignore_index=True)
-                try:
-                    df.to_csv(file_path, index=False)
-                    st.success("✅ Data saved locally.")
-                    push_to_sheet_append(df)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Save failed: {e}")
-
-    # --- Waiting List ---
-    with tabs[1]:
-        st.title("⏳ Patients Waiting for Doctor Update")
-        df = df.fillna("")
-        waiting_df = df[
-            (df["Diagnosis"] == "") & 
-            (df["Treatment"] == "") & 
-            (df["Plan"] == "") &
-            (df["Appt_Name"] == "")
-        ]
-        if waiting_df.empty:
-            st.success("🎉 No patients are currently waiting.")
-        else:
-            for idx, row in waiting_df.iterrows():
-                with st.expander(f"🪪 {row['Patient_ID']} — {row['Full_Name']}, Age {row['Age']}"):
-                    selected = df[df["Patient_ID"] == row["Patient_ID"]]
-                    with st.form(f"form_{row['Patient_ID']}_{idx}", clear_on_submit=True):
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            ac = st.text_area("AC", height=100)
-                            fundus = st.text_area("Fundus", height=100)
-                            us = st.text_input("U/S")
-                            oct_ffa = st.text_input("OCT/FFA")
-                        with col2:
-                            diagnosis = st.text_input("Diagnosis", value=selected["Diagnosis"].values[0])
-                            treatment = st.text_input("Treatment")
-                            plan = st.text_input("Plan")
-                        submitted = st.form_submit_button("Update Record")
-
-                    if submitted:
-                        idx_df = df[df["Patient_ID"] == row["Patient_ID"]].index[0]
-                        df.loc[idx_df, ["AC", "Fundus", "U/S", "OCT/FFA", "Diagnosis", "Treatment", "Plan"]] = [
-                            ac.strip(), fundus.strip(), us.strip(), oct_ffa.strip(), diagnosis.strip(), treatment.strip(), plan.strip()
-                        ]
-                        try:
-                            df.to_csv(file_path, index=False)
-                            st.success("✅ Updated locally.")
-                            push_to_sheet_append(df)
-                            patient_record = df.loc[idx_df].to_dict()
-                            pdf_path = generate_patient_pdf(patient_record)
-                            with open(pdf_path, "rb") as f:
-                                pdf_bytes = f.read()
-                                st.download_button(
-                                    label=f"🖨️ Download PDF Summary for Patient {row['Patient_ID']}",
-                                    data=pdf_bytes,
-                                    file_name=f"Patient_{row['Patient_ID']}_summary.pdf",
-                                    mime="application/pdf",
-                                )
-                        except Exception as e:
-                            st.error(f"❌ Update failed: {e}")
-
-# ========== VIEW DATA ==========
-elif menu == "📊 View Data":
-    st.title("📊 Patient Records")
-    tab1, tab2 = st.tabs(["📋 All Records", "🗕️ Download CSV"])
-    with tab1:
-        st.dataframe(df, use_container_width=True)
-    with tab2:
-        st.download_button(
-            label="⬇️ Download All Records",
-            data=df.to_csv(index=False),
-            file_name="all_eye_patients.csv",
-            mime="text/csv"
-        )
+# ---------- Archive Tab ----------
+with tabs[1]:
+    archive = bookings[bookings["Appointment Date"] <= yesterday]
+    st.subheader("📂 Appointment Archive")
+    if archive.empty:
+        st.info("No archived appointments.")
+    else:
+        archive_disp = archive.sort_values("Appointment Date", ascending=False).reset_index(drop=True)
+        archive_disp.index += 1
+        st.dataframe(archive_disp[["Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"]],
+                     use_container_width=True)
