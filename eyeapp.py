@@ -5,6 +5,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from fpdf import FPDF
 import tempfile
+import json
 
 # ---------- PDF Generator ----------
 def generate_patient_pdf(record):
@@ -29,9 +30,11 @@ def get_sheet():
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
-    creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=scope
-    )
+
+    # Convert secret JSON string to dictionary
+    service_account_info = json.loads(st.secrets["gcp_service_account"])
+
+    creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
     client = gspread.authorize(creds)
     return client.open_by_key(SHEET_ID).sheet1
 
@@ -44,7 +47,7 @@ def load_bookings():
         records = sheet.get_all_records()
         df = pd.DataFrame(records)
 
-        # Auto-rename old headers if needed
+        # Rename old headers if found
         rename_map = {
             "Appt_Name": "Patient Name",
             "Appt_Date": "Appointment Date",
@@ -53,7 +56,7 @@ def load_bookings():
         }
         df.rename(columns=rename_map, inplace=True)
 
-        # Ensure all columns exist
+        # Ensure all required columns exist
         for col in COLUMNS:
             if col not in df.columns:
                 df[col] = ""
