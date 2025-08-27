@@ -38,43 +38,34 @@ sheet = get_sheet()
 def push_to_sheet_append(df):
     try:
         df = df.fillna("").astype(str)
-        existing_records = sheet.get_all_records()
-        existing_df = pd.DataFrame(existing_records)
-        if not existing_df.empty:
-            new_rows = df.merge(existing_df, how="outer", indicator=True).query('_merge=="left_only"').drop('_merge', axis=1)
-        else:
-            new_rows = df
-        if not new_rows.empty:
-            sheet.append_rows(new_rows.values.tolist(), value_input_option="RAW")
+        sheet.append_rows(df.values.tolist(), value_input_option="RAW")
         return True
     except Exception as e:
         st.error(f"❌ Google Sheets append failed: {e}")
         return False
 
-# ---------- Page config ----------
+# ---------- File Setup ----------
 st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 file_path = "eye_data.csv"
 
 # Initialize CSV if missing
 if not os.path.exists(file_path):
     pd.DataFrame(columns=[
-        "Date", "Patient_ID", "Full_Name", "Age", "Gender", "Phone_Number",
-        "Visual_Acuity", "VAcc", "IOP", "Medication", "AC", "Fundus", "U/S",
-        "OCT/FFA", "Diagnosis", "Treatment", "Plan",
-        "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"
+        "Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"
     ]).to_csv(file_path, index=False)
 
-df = pd.read_csv(file_path)
+# ---------- Local Save / Load ----------
+def load_bookings():
+    if os.path.exists(file_path):
+        return pd.read_csv(file_path)
+    else:
+        return pd.DataFrame(columns=["Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"])
 
-# ====== Safely add new columns if missing ======
-for col in ["VAcc", "Appt_Name", "Appt_Date", "Appt_Time", "Appt_Payment"]:
-    if col not in df.columns:
-        df[col] = ""
-
-# Session state
-if "selected_waiting_id" not in st.session_state:
-    st.session_state.selected_waiting_id = None
-
+def save_bookings(df, new_row=None):
+    """Save locally and push new row to Google Sheets if provided"""
+    df.to_csv(file_path, index=False)
+    if new_row is not None:
+        push_to_sheet_append(pd.DataFrame([new_row]))
 
 # ---------- Streamlit Page Setup ----------
 st.set_page_config(page_title="Global Eye Center (Appointments)", layout="wide")
@@ -104,9 +95,9 @@ if st.sidebar.button("💾 Save Appointment"):
             "Payment": payment.strip()
         }
         df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
-        save_bookings(df)
-        st.sidebar.success("Appointment saved successfully.")
-        safe_rerun()
+        save_bookings(df, new_row=new_record)
+        st.sidebar.success("✅ Appointment saved locally & in Google Sheet.")
+        st.rerun()
 
 # ---------- Load Bookings ----------
 bookings = load_bookings()
@@ -137,5 +128,7 @@ with tabs[1]:
     else:
         archive_disp = archive.sort_values("Appointment Date", ascending=False).reset_index(drop=True)
         archive_disp.index += 1
-        st.dataframe(archive_disp[["Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"]],
-                     use_container_width=True)
+        st.dataframe(
+            archive_disp[["Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"]],
+            use_container_width=True
+        )
