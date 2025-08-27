@@ -140,3 +140,4 @@ with tabs[1]:
             archive_disp[["Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"]],
             use_container_width=True
         )
+
