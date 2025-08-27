@@ -95,7 +95,7 @@ tabs = st.tabs(["📌 Upcoming Appointments", "📂 Appointment Archive"])
 st.sidebar.header("Add New Appointment")
 patient_name = st.sidebar.text_input("Patient Name")
 appt_date = st.sidebar.date_input("Appointment Date", value=date.today())
-appt_time = st.sidebar.text_input("Appointment Time (manual)", placeholder="HH:MM")
+appt_time = st.sidebar.text_input("Appointment Time (manual)")
 payment = st.sidebar.text_input("Payment")
 
 if st.sidebar.button("💾 Save Appointment"):
