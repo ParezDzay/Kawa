@@ -45,14 +45,31 @@ def push_to_sheet_append(df):
         return False
 
 # ---------- File Setup ----------
-st.set_page_config(page_title="Clinic Patient Data", layout="wide")
 file_path = "eye_data.csv"
+COLUMNS = ["Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"]
 
-# Initialize CSV if missing
+# Initialize CSV if missing OR fix mismatched headers
 if not os.path.exists(file_path):
-    pd.DataFrame(columns=[
-        "Patient Name", "Appointment Date", "Appointment Time (manual)", "Payment"
-    ]).to_csv(file_path, index=False)
+    pd.DataFrame(columns=COLUMNS).to_csv(file_path, index=False)
+
+def load_bookings():
+    if os.path.exists(file_path):
+        df = pd.read_csv(file_path)
+        # Ensure all required columns exist
+        for col in COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+        return df[COLUMNS]  # enforce correct order
+    else:
+        return pd.DataFrame(columns=COLUMNS)
+
+def save_bookings(df, new_row=None):
+    """Save locally and push new row to Google Sheets if provided"""
+    # Keep only the expected columns
+    df = df[COLUMNS]
+    df.to_csv(file_path, index=False)
+    if new_row is not None:
+        push_to_sheet_append(pd.DataFrame([new_row], columns=COLUMNS))
 
 # ---------- Local Save / Load ----------
 def load_bookings():
