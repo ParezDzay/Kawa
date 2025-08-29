@@ -8,6 +8,7 @@ from datetime import date, timedelta
 # ---------- Constants ----------
 CSV_FILE = "eye_data.csv"
 SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
+
 REQUIRED_COLUMNS = [
     "Patient Name",
     "Appointment Date",
@@ -28,21 +29,18 @@ def get_sheet():
     client = gspread.authorize(creds)
     sheet = client.open_by_key(SHEET_ID).sheet1
 
-    # --- Check for duplicate headers ---
+    # --- Fix duplicate headers if exist ---
     headers = sheet.row_values(1)
     if len(headers) != len(set(headers)):
         st.warning("Duplicate headers detected in Google Sheet, fixing automatically.")
-        new_headers = []
-        seen = {}
+        new_headers, seen = [], {}
         for h in headers:
             if h in seen:
                 seen[h] += 1
-                new_headers.append(f"{h}_{seen[h]}")  # rename duplicates
+                new_headers.append(f"{h}_{seen[h]}")
             else:
                 seen[h] = 0
                 new_headers.append(h)
-
-        # Update header row in the sheet
         sheet.update("1:1", [new_headers])
 
     return sheet
@@ -52,46 +50,37 @@ sheet = get_sheet()
 
 # ---------- Functions ----------
 def load_bookings():
-    """Load CSV locally, create if missing."""
+    """Load CSV locally, create if missing, sync from Google Sheets."""
     if not os.path.exists(CSV_FILE):
         pd.DataFrame(columns=REQUIRED_COLUMNS).to_csv(CSV_FILE, index=False)
 
-    df = pd.read_csv(CSV_FILE)
+    # Always pull fresh from Google Sheet
+    records = sheet.get_all_records()
+    df = pd.DataFrame(records)
 
     # Ensure required columns exist
     for col in REQUIRED_COLUMNS:
         if col not in df.columns:
             df[col] = ""
 
+    # Save local copy
+    df.to_csv(CSV_FILE, index=False)
     return df
 
 
-def save_bookings(df):
-    """Save DataFrame locally."""
-    df.to_csv(CSV_FILE, index=False)
-
-
-def push_to_sheet_append(df):
-    """Append new rows to Google Sheet."""
+def save_booking_to_sheet(new_record):
+    """Save only new record directly to Google Sheet + CSV."""
     try:
-        df_to_push = df.fillna("").astype(str)
-        existing_records = sheet.get_all_records()
-        existing_df = pd.DataFrame(existing_records)
+        # Append row to sheet
+        sheet.append_row(list(new_record.values()), value_input_option="RAW")
 
-        if not existing_df.empty:
-            new_rows = (
-                df_to_push.merge(existing_df, how="outer", indicator=True)
-                .query('_merge=="left_only"')
-                .drop('_merge', axis=1)
-            )
-        else:
-            new_rows = df_to_push
-
-        if not new_rows.empty:
-            sheet.append_rows(new_rows.values.tolist(), value_input_option="RAW")
+        # Append row to local CSV
+        df = pd.read_csv(CSV_FILE)
+        df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
+        df.to_csv(CSV_FILE, index=False)
         return True
     except Exception as e:
-        st.error(f"❌ Failed to push to Google Sheets: {e}")
+        st.error(f"❌ Failed to save booking: {e}")
         return False
 
 
@@ -110,18 +99,10 @@ if "form_inputs" not in st.session_state:
         "payment": ""
     }
 
-patient_name = st.sidebar.text_input(
-    "Patient Name", value=st.session_state.form_inputs["patient_name"]
-)
-appt_date = st.sidebar.date_input(
-    "Appointment Date", value=st.session_state.form_inputs["appt_date"]
-)
-appt_time = st.sidebar.text_input(
-    "Appointment Time (manual)", placeholder="HH:MM", value=st.session_state.form_inputs["appt_time"]
-)
-payment = st.sidebar.text_input(
-    "Payment", placeholder="e.g., Cash / Card / None", value=st.session_state.form_inputs["payment"]
-)
+patient_name = st.sidebar.text_input("Patient Name", value=st.session_state.form_inputs["patient_name"])
+appt_date = st.sidebar.date_input("Appointment Date", value=st.session_state.form_inputs["appt_date"])
+appt_time = st.sidebar.text_input("Appointment Time (manual)", placeholder="HH:MM", value=st.session_state.form_inputs["appt_time"])
+payment = st.sidebar.text_input("Payment", placeholder="e.g., Cash / Card / None", value=st.session_state.form_inputs["payment"])
 
 if st.sidebar.button("💾 Save Appointment"):
     if not patient_name:
@@ -129,60 +110,53 @@ if st.sidebar.button("💾 Save Appointment"):
     elif not appt_time:
         st.sidebar.error("Appointment Time is required.")
     else:
-        df = load_bookings()
         new_record = {
             "Patient Name": patient_name.strip(),
             "Appointment Date": appt_date.strftime("%Y-%m-%d"),
             "Appointment Time (manual)": appt_time.strip(),
             "Payment": payment.strip()
         }
-        df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
-        save_bookings(df)
-        push_to_sheet_append(df)
-        st.sidebar.success("Appointment saved successfully.")
-
-        # Clear form inputs
-        st.session_state.form_inputs = {
-            "patient_name": "",
-            "appt_date": date.today(),
-            "appt_time": "",
-            "payment": ""
-        }
+        if save_booking_to_sheet(new_record):
+            st.sidebar.success("Appointment saved successfully.")
+            # Clear form
+            st.session_state.form_inputs = {
+                "patient_name": "",
+                "appt_date": date.today(),
+                "appt_time": "",
+                "payment": ""
+            }
 
 # ---------- Load Bookings ----------
 bookings = load_bookings()
-
-# Convert Appointment Date to datetime
 bookings["Appointment Date"] = pd.to_datetime(bookings["Appointment Date"], errors="coerce")
-yesterday = pd.Timestamp(date.today() - timedelta(days=1))
+
+today = pd.Timestamp(date.today())
+
+# Split into upcoming & archive
+upcoming = bookings[bookings["Appointment Date"].dt.date >= today.date()]
+archive = bookings[bookings["Appointment Date"].dt.date < today.date()]
 
 # ---------- Main Tabs ----------
 tabs = st.tabs(["📌 Upcoming Appointments", "📂 Appointment Archive"])
 
 # Upcoming
 with tabs[0]:
-    upcoming = bookings[bookings["Appointment Date"] > yesterday]
     st.subheader("📌 Upcoming Appointments")
 
     if upcoming.empty:
         st.info("No upcoming appointments.")
     else:
-        upcoming_disp = upcoming.sort_values("Appointment Date")
+        # Dropdown date selection
+        available_dates = sorted(upcoming["Appointment Date"].dt.date.unique())
+        selected_date = st.selectbox("Select a date", available_dates, format_func=lambda d: d.strftime("%A, %d %B %Y"))
 
-        # --- Dropdown for date selection ---
-        unique_dates = upcoming_disp["Appointment Date"].dt.date.unique()
-        selected_date = st.selectbox("Select a date", options=unique_dates)
-
-        day_df = upcoming_disp[upcoming_disp["Appointment Date"].dt.date == selected_date]
-
-        st.write(f"### 📅 {selected_date.strftime('%A, %d %B %Y')}")
+        day_df = upcoming[upcoming["Appointment Date"].dt.date == selected_date]
         day_df_display = day_df[["Patient Name", "Appointment Time (manual)", "Payment"]].reset_index(drop=True)
-        day_df_display.index = range(1, len(day_df_display)+1)
+        day_df_display.index = range(1, len(day_df_display) + 1)
         st.dataframe(day_df_display, use_container_width=True)
 
 # Archive
 with tabs[1]:
-    archive = bookings[bookings["Appointment Date"] <= yesterday]
     st.subheader("📂 Appointment Archive")
 
     if archive.empty:
