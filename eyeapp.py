@@ -12,7 +12,7 @@ SHEET_ID = "1keLx7iBH92_uKxj-Z70iTmAVus7X9jxaFXl_SQ-mZvU"
 REQUIRED_COLUMNS = [
     "Patient Name",
     "Appointment Date",
-    "Appointment Time",
+    "Time",
     "Payment"
 ]
 
@@ -127,7 +127,7 @@ if "form_inputs" not in st.session_state:
 
 patient_name = st.sidebar.text_input("Patient Name", value=st.session_state.form_inputs["patient_name"])
 appt_date = st.sidebar.date_input("Appointment Date", value=st.session_state.form_inputs["appt_date"])
-appt_time = st.sidebar.text_input("Appointment Time", placeholder="HH:MM",
+appt_time = st.sidebar.text_input("Time", placeholder="HH:MM",
                                   value=st.session_state.form_inputs["appt_time"])
 payment = st.sidebar.text_input("Payment", placeholder="e.g., Cash / Card / None",
                                 value=st.session_state.form_inputs["payment"])
@@ -136,13 +136,13 @@ if st.sidebar.button("💾 Save Appointment"):
     if not patient_name:
         st.sidebar.error("Patient Name is required.")
     elif not appt_time:
-        st.sidebar.error("Appointment Time is required.")
+        st.sidebar.error("Time is required.")
     else:
         df = load_bookings()
         new_record = {
             "Patient Name": patient_name.strip(),
             "Appointment Date": appt_date.strftime("%Y-%m-%d"),
-            "Appointment Time": appt_time.strip(),
+            "Time": appt_time.strip(),
             "Payment": payment.strip()
         }
         df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
@@ -178,7 +178,7 @@ with tabs[0]:
         for d in upcoming_disp["Appointment Date"].dt.date.unique():
             day_df = upcoming_disp[upcoming_disp["Appointment Date"].dt.date == d]
             with st.expander(d.strftime("📅 %A, %d %B %Y")):
-                day_df_display = day_df[["Patient Name", "Appointment Time", "Payment"]].reset_index(drop=True)
+                day_df_display = day_df[["Patient Name", "Time", "Payment"]].reset_index(drop=True)
                 day_df_display.index = range(1, len(day_df_display)+1)
                 st.dataframe(day_df_display, use_container_width=True)
 
@@ -193,6 +193,6 @@ with tabs[1]:
         archive_disp = archive.sort_values("Appointment Date", ascending=False).reset_index(drop=True)
         archive_disp.index += 1
         st.dataframe(
-            archive_disp[["Patient Name", "Appointment Date", "Appointment Time", "Payment"]],
+            archive_disp[["Patient Name", "Appointment Date", "Time", "Payment"]],
             use_container_width=True
         )
