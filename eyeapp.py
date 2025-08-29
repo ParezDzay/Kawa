@@ -38,7 +38,7 @@ def get_sheet():
         for h in headers:
             if h in seen:
                 seen[h] += 1
-                new_headers.append(f"{h}_{seen[h]}")  # rename duplicates
+                new_headers.append(f"{h}_{seen[h]}")
             else:
                 seen[h] = 0
                 new_headers.append(h)
@@ -68,44 +68,14 @@ def load_bookings():
                 df[col] = ""
         return df
 
-
 def save_bookings(df):
-    """Save DataFrame locally and to Google Sheet."""
+    """Save DataFrame locally and to Google Sheet (overwrite)."""
     df.to_csv(CSV_FILE, index=False)
     try:
         sheet.clear()
         sheet.update([df.columns.values.tolist()] + df.values.tolist())
     except Exception as e:
         st.error(f"❌ Failed to save to Google Sheets: {e}")
-
-
-def push_to_sheet_append(df):
-    """Append new rows to Google Sheet (and sync CSV)."""
-    try:
-        df_to_push = df.fillna("").astype(str)
-        existing_records = sheet.get_all_records()
-        existing_df = pd.DataFrame(existing_records)
-
-        if not existing_df.empty:
-            new_rows = df_to_push.merge(existing_df, how="outer", indicator=True) \
-                                 .query('_merge=="left_only"') \
-                                 .drop('_merge', axis=1)
-        else:
-            new_rows = df_to_push
-
-        if not new_rows.empty:
-            sheet.append_rows(new_rows.values.tolist(), value_input_option="RAW")
-
-        # Sync CSV
-        updated_records = sheet.get_all_records()
-        pd.DataFrame(updated_records).to_csv(CSV_FILE, index=False)
-
-        return True
-
-    except Exception as e:
-        st.error(f"❌ Failed to push to Google Sheets: {e}")
-        return False
-
 
 # ---------- Page Setup ----------
 st.set_page_config(page_title="Dr Kawa Clinic (Appointments)", layout="wide")
@@ -136,13 +106,19 @@ if st.sidebar.button("💾 Save Appointment"):
             "Time": appt_time.strip(),
             "Payment": payment.strip()
         }
-        df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
 
-        # Save only once when button clicked
-        save_bookings(df)
-        push_to_sheet_append(df)
-
-        st.sidebar.success("Appointment saved successfully.")
+        # Check for exact duplicate before saving
+        duplicate_check = df[
+            (df["Patient Name"] == new_record["Patient Name"]) &
+            (df["Appointment Date"] == new_record["Appointment Date"]) &
+            (df["Time"] == new_record["Time"])
+        ]
+        if not duplicate_check.empty:
+            st.sidebar.warning("This appointment already exists. No duplicate saved.")
+        else:
+            df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
+            save_bookings(df)
+            st.sidebar.success("Appointment saved successfully.")
 
         # Clear form inputs
         st.session_state.form_inputs = {"patient_name": "", "appt_date": date.today(),
@@ -150,8 +126,6 @@ if st.sidebar.button("💾 Save Appointment"):
 
 # ---------- Load Bookings ----------
 bookings = load_bookings()
-
-# Convert Appointment Date to datetime
 bookings["Appointment Date"] = pd.to_datetime(bookings["Appointment Date"], errors="coerce")
 yesterday = pd.Timestamp(date.today() - timedelta(days=1))
 
@@ -162,7 +136,6 @@ tabs = st.tabs(["📌 Upcoming Appointments", "📂 Appointment Archive"])
 with tabs[0]:
     upcoming = bookings[bookings["Appointment Date"] > yesterday]
     st.subheader("📌 Upcoming Appointments")
-
     if upcoming.empty:
         st.info("No upcoming appointments.")
     else:
@@ -178,7 +151,6 @@ with tabs[0]:
 with tabs[1]:
     archive = bookings[bookings["Appointment Date"] <= yesterday]
     st.subheader("📂 Appointment Archive")
-
     if archive.empty:
         st.info("No archived appointments.")
     else:
