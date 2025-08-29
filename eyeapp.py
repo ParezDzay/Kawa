@@ -127,7 +127,7 @@ if "form_inputs" not in st.session_state:
 
 patient_name = st.sidebar.text_input("Patient Name", value=st.session_state.form_inputs["patient_name"])
 appt_date = st.sidebar.date_input("Appointment Date", value=st.session_state.form_inputs["appt_date"])
-appt_time = st.sidebar.text_input("Time", placeholder="HH:MM",
+appt_time = st.sidebar.text_input("Time",
                                   value=st.session_state.form_inputs["appt_time"])
 payment = st.sidebar.text_input("Payment", placeholder="e.g., Cash / Card / None",
                                 value=st.session_state.form_inputs["payment"])
