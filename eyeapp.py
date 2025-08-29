@@ -42,7 +42,6 @@ def get_sheet():
             else:
                 seen[h] = 0
                 new_headers.append(h)
-        # Update header row in the sheet
         sheet.update("1:1", [new_headers])
 
     return sheet
@@ -51,20 +50,14 @@ sheet = get_sheet()
 
 # ---------- Functions ----------
 def load_bookings():
-    """Load data from Google Sheet (syncs with CSV)."""
+    """Load data from Google Sheet or fallback CSV. Does NOT save automatically."""
     try:
         records = sheet.get_all_records()
         df = pd.DataFrame(records)
-
-        # Ensure required columns exist
         for col in REQUIRED_COLUMNS:
             if col not in df.columns:
                 df[col] = ""
-
-        # Save a synced local copy
-        df.to_csv(CSV_FILE, index=False)
         return df
-
     except Exception as e:
         st.error(f"⚠️ Failed to load from Google Sheets, using local CSV. Error: {e}")
         if not os.path.exists(CSV_FILE):
@@ -127,10 +120,8 @@ if "form_inputs" not in st.session_state:
 
 patient_name = st.sidebar.text_input("Patient Name", value=st.session_state.form_inputs["patient_name"])
 appt_date = st.sidebar.date_input("Appointment Date", value=st.session_state.form_inputs["appt_date"])
-appt_time = st.sidebar.text_input("Time",
-                                  value=st.session_state.form_inputs["appt_time"])
-payment = st.sidebar.text_input("Payment",
-                                value=st.session_state.form_inputs["payment"])
+appt_time = st.sidebar.text_input("Time", value=st.session_state.form_inputs["appt_time"])
+payment = st.sidebar.text_input("Payment", value=st.session_state.form_inputs["payment"])
 
 if st.sidebar.button("💾 Save Appointment"):
     if not patient_name:
@@ -147,6 +138,7 @@ if st.sidebar.button("💾 Save Appointment"):
         }
         df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
 
+        # Save only once when button clicked
         save_bookings(df)
         push_to_sheet_append(df)
 
