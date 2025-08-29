@@ -129,7 +129,7 @@ patient_name = st.sidebar.text_input("Patient Name", value=st.session_state.form
 appt_date = st.sidebar.date_input("Appointment Date", value=st.session_state.form_inputs["appt_date"])
 appt_time = st.sidebar.text_input("Time",
                                   value=st.session_state.form_inputs["appt_time"])
-payment = st.sidebar.text_input("Payment", placeholder="e.g., Cash / Card / None",
+payment = st.sidebar.text_input("Payment",
                                 value=st.session_state.form_inputs["payment"])
 
 if st.sidebar.button("💾 Save Appointment"):
