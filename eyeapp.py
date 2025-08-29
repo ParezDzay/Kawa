@@ -115,8 +115,8 @@ def push_to_sheet_append(df):
 
 
 # ---------- Page Setup ----------
-st.set_page_config(page_title="Global Eye Center (Appointments)", layout="wide")
-st.title("Global Eye Center (Appointments)")
+st.set_page_config(page_title="Dr Kawa Clinic (Appointments)", layout="wide")
+st.title("Dr Kawa Clinic (Appointments)")
 
 # ---------- Sidebar Form ----------
 st.sidebar.header("Add New Appointment")
